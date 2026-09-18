@@ -1,0 +1,15 @@
+node_modules
+dist
+dev-dist
+*.local
+.env
+.env.*
+!.env.example
+.firebase
+.firebaserc
+.DS_Store
+
+# Local Netlify folder
+.netlify
+firebase-debug.log
+techloq-ca.pem

@@ -1,0 +1,177 @@
+@import 'tailwindcss';
+
+/*
+  ZURY AVODAH — sistema visual
+  Inspiración: Beit Midrash, sefarim, Bnei Brak. Sobrio, premium, con kedushá.
+  Dos ambientes que siguen el día judío: DÍA (marfil/crema) y NOCHE (azul noche/dorado).
+  Los colores se exponen como variables CSS y las utilidades las consumen vía @theme.
+*/
+
+:root {
+  /* ---- DÍA ---- */
+  --bg: #f4efe4;
+  --bg-raised: #fbf7ee;
+  --bg-sunken: #ece4d2;
+  --ink: #2b2417;
+  --ink-soft: #6b5f48;
+  --ink-faint: #9a8c6f;
+  --line: #ddd0b4;
+  --gold: #9a7b33;
+  --gold-soft: #b8963f;
+  --walnut: #4a3623;
+  --night-blue: #1b2436;
+  --olive: #6b7250;
+  --danger: #9b3d33;
+  --success: #4f6b45;
+  --accent: var(--gold);
+  --shadow: 0 1px 2px rgba(43, 36, 23, 0.06), 0 6px 20px rgba(43, 36, 23, 0.08);
+  color-scheme: light;
+}
+
+[data-mode='night'] {
+  /* ---- NOCHE ---- */
+  --bg: #12141f;
+  --bg-raised: #1b1e2e;
+  --bg-sunken: #0d0f17;
+  --ink: #ece3cf;
+  --ink-soft: #b3a583;
+  --ink-faint: #7d7358;
+  --line: #2b2f42;
+  --gold: #d9b978;
+  --gold-soft: #b8963f;
+  --walnut: #c9a678;
+  --night-blue: #0d1220;
+  --olive: #8a9468;
+  --danger: #c9756b;
+  --success: #86a878;
+  --accent: var(--gold);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 30px rgba(0, 0, 0, 0.45);
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-raised: var(--bg-raised);
+  --color-sunken: var(--bg-sunken);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
+  --color-line: var(--line);
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --color-walnut: var(--walnut);
+  --color-nightblue: var(--night-blue);
+  --color-olive: var(--olive);
+  --color-danger: var(--danger);
+  --color-success: var(--success);
+  --font-serif: 'Frank Ruhl Libre', 'Iowan Old Style', 'Palatino Linotype', Georgia, 'Times New Roman', serif;
+  --font-sans: 'Assistant', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+@font-face {
+  font-family: 'Frank Ruhl Libre';
+  src: local('Frank Ruhl Libre');
+  font-display: swap;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  transition: background 900ms ease, color 900ms ease;
+  overscroll-behavior-y: none;
+}
+
+.hebrew {
+  font-family: var(--font-serif);
+  direction: rtl;
+  unicode-bidi: isolate;
+}
+
+/* Transición suave día <-> noche en todos los contenedores con token de fondo */
+.themed-transition,
+.themed-transition * {
+  transition: background-color 900ms ease, border-color 900ms ease, color 700ms ease;
+}
+
+.safe-bottom {
+  padding-bottom: max(env(safe-area-inset-bottom), 0.5rem);
+}
+.safe-top {
+  /* nunca menos que el py-3 del header; en dispositivos con notch, el inset */
+  padding-top: max(env(safe-area-inset-top), 0.75rem);
+}
+
+@keyframes faderise {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.faderise {
+  animation: faderise 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .faderise {
+    animation-duration: 1ms;
+  }
+}
+
+/*
+  Marco de página de sefer: doble filete finísimo. Sobrio, se nota solo de cerca.
+  Se aplica a las tarjetas (.Card) además de su borde.
+*/
+.sefer-frame {
+  box-shadow:
+    var(--shadow),
+    inset 0 0 0 3px var(--bg-raised),
+    inset 0 0 0 4px color-mix(in srgb, var(--gold) 14%, transparent);
+}
+
+/* Divisor central tipo sefer: filete con rombo al medio. */
+.rule-diamond {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: color-mix(in srgb, var(--gold) 55%, transparent);
+}
+.rule-diamond::before,
+.rule-diamond::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: currentColor;
+}
+.rule-diamond > span {
+  width: 5px;
+  height: 5px;
+  transform: rotate(45deg);
+  background: currentColor;
+}
+
+/* scrollbars discretos */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 8px;
+}

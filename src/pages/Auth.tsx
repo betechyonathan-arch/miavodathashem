@@ -1,0 +1,164 @@
+import { useEffect, useState } from 'react';
+import type { Gender } from '../lib/auth/session';
+import { backendConfigured } from '../lib/supabase';
+import { AuthError, MIN_PASSWORD, login, recoveryLinkError, register, requestPasswordReset } from '../lib/auth/accounts';
+import { Btn, Field, inputCls } from '../components/ui';
+
+/**
+ * Puerta de entrada: crear cuenta o entrar. Se muestra antes de cargar la app.
+ * Al tener éxito se recarga la página para abrir la base de datos de ese usuario.
+ */
+export default function Auth() {
+  const [mode, setMode] = useState<'login' | 'registro' | 'recuperar'>(recoveryLinkError() ? 'recuperar' : 'registro');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [gender, setGender] = useState<Gender | null>(null);
+  const [error, setError] = useState(recoveryLinkError());
+  const [notice, setNotice] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    document.documentElement.dataset.mode = 'night';
+  }, []);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setError('');
+    setNotice('');
+    setBusy(true);
+    try {
+      if (mode === 'recuperar') {
+        await requestPasswordReset(email);
+        setNotice('Si existe una cuenta con ese correo, te enviamos un enlace para crear una contraseña nueva. Revisa tu bandeja (y el spam).');
+        setBusy(false);
+        return;
+      }
+      if (mode === 'registro') {
+        const { session } = await register(name, email, password, gender);
+        if (!session) {
+          setNotice('Te enviamos un correo para confirmar tu cuenta. Ábrelo, toca el enlace y vuelve aquí a entrar.');
+          setMode('login');
+          setBusy(false);
+          return;
+        }
+      } else {
+        await login(email, password);
+      }
+      window.location.replace('/');
+    } catch (err) {
+      setError(err instanceof AuthError ? err.message : 'No se pudo completar. Intenta de nuevo.');
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="grid min-h-full place-items-center bg-bg px-6 py-10">
+      <div className="w-full max-w-sm">
+        <div className="mb-8 text-center">
+          <div className="hebrew text-3xl leading-snug text-gold">לעבוד את ה׳ בכל דרכיך</div>
+          <div className="mt-2 text-[11px] uppercase tracking-[0.18em] text-ink-faint">Avodah</div>
+        </div>
+
+        <div className="mb-4 grid grid-cols-2 rounded-xl border border-line bg-raised p-1 text-[14px]">
+          {(['registro', 'login'] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => {
+                setMode(m);
+                setError('');
+                setNotice('');
+              }}
+              className={`rounded-lg py-2 transition-colors ${mode === m || (m === 'login' && mode === 'recuperar') ? 'bg-gold font-medium text-[#1a140a]' : 'text-ink-soft'}`}
+            >
+              {m === 'registro' ? 'Crear cuenta' : 'Entrar'}
+            </button>
+          ))}
+        </div>
+
+        <form onSubmit={submit} className="sefer-frame space-y-4 rounded-2xl border border-line bg-raised p-5">
+          {mode === 'registro' && (
+            <Field label="Nombre">
+              <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" required />
+            </Field>
+          )}
+          {mode === 'registro' && (
+            <div>
+              <span className="mb-1 block text-[13px] font-medium text-ink-soft">Eres</span>
+              <div className="grid grid-cols-2 gap-2">
+                {(['hombre', 'mujer'] as const).map((g) => (
+                  <button
+                    key={g}
+                    type="button"
+                    onClick={() => setGender(g)}
+                    aria-pressed={gender === g}
+                    className={`rounded-xl border px-3 py-2.5 text-[15px] transition-colors ${
+                      gender === g
+                        ? 'border-gold bg-gold font-medium text-[#1a140a]'
+                        : 'border-line bg-raised text-ink-soft hover:border-gold'
+                    }`}
+                  >
+                    {g === 'hombre' ? 'Hombre' : 'Mujer'}
+                  </button>
+                ))}
+              </div>
+              <span className="mt-1 block text-[11px] text-ink-faint">
+                Según la halajá, las mitzvot y las preguntas que verás son distintas para hombres y mujeres.
+              </span>
+            </div>
+          )}
+          <Field label="Correo">
+            <input
+              className={inputCls}
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+              required
+            />
+          </Field>
+          {mode !== 'recuperar' && (
+          <Field label="Contraseña" hint={mode === 'registro' ? `Mínimo ${MIN_PASSWORD} caracteres.` : undefined}>
+            <input
+              className={inputCls}
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete={mode === 'registro' ? 'new-password' : 'current-password'}
+              required
+            />
+          </Field>
+          )}
+          {mode === 'login' && backendConfigured && (
+            <button
+              type="button"
+              onClick={() => {
+                setMode('recuperar');
+                setError('');
+                setNotice('');
+              }}
+              className="text-[13px] text-gold"
+            >
+              ¿Olvidaste tu contraseña?
+            </button>
+          )}
+          {mode === 'recuperar' && (
+            <p className="text-[12px] text-ink-faint">Escribe tu correo y te mandamos un enlace para crear una contraseña nueva.</p>
+          )}
+          {error && <p className="text-[13px] text-[var(--danger)]">{error}</p>}
+          {notice && <p className="text-[13px] text-[var(--success)]">{notice}</p>}
+          <Btn type="submit" disabled={busy} className="w-full">
+            {busy ? '…' : mode === 'registro' ? 'Crear mi cuenta' : mode === 'recuperar' ? 'Enviar enlace' : 'Entrar'}
+          </Btn>
+        </form>
+
+        <p className="mt-4 text-center text-[12px] leading-relaxed text-ink-faint">
+          {backendConfigured
+            ? 'Tu cuenta vive en el servidor: puedes entrar desde cualquier dispositivo. Tus registros se guardan en este dispositivo; expórtalos seguido desde Ajustes.'
+            : 'Modo de prueba: tu cuenta y tus registros se guardan solo en este dispositivo.'}
+        </p>
+      </div>
+    </div>
+  );
+}
