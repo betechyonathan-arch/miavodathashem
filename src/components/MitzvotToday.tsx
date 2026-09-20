@@ -1,6 +1,8 @@
 import { useZury } from '../state/zury';
 import { patchDay } from '../lib/db/repo';
-import { MITZVOT_CATALOG, mitzvahLabel } from '../lib/mitzvot';
+import { Link } from 'react-router-dom';
+import { defaultTrackedMitzvot, mitzvahLabel } from '../lib/mitzvot';
+import { getGender } from '../lib/gender';
 import { Card, SectionTitle } from './ui';
 
 export default function MitzvotToday() {
@@ -9,7 +11,7 @@ export default function MitzvotToday() {
 
   const tracked = settings.trackedMitzvot?.length
     ? settings.trackedMitzvot
-    : MITZVOT_CATALOG.slice(0, 8).map((m) => m.id);
+    : defaultTrackedMitzvot(getGender());
   const done = new Set(dayRecord?.mitzvot ?? []);
 
   async function toggle(id: string) {
@@ -48,6 +50,11 @@ export default function MitzvotToday() {
       <p className="mt-1 px-1 text-[11px] text-ink-faint">
         Registra comportamiento, no una puntuación. Configura tu lista en Misión → Identidad.
       </p>
+      {getGender() === 'mujer' && (
+        <Link to="/mujer" className="mt-1 block px-1 text-[12px] text-gold underline underline-offset-2">
+          Mitzvot de la mujer: conoce todas las tuyas
+        </Link>
+      )}
     </div>
   );
 }

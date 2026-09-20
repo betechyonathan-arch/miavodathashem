@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useZury } from '../state/zury';
 import { Card, SectionTitle } from '../components/ui';
 import { getSession } from '../lib/auth/session';
+import { getGender } from '../lib/gender';
 
 interface Row {
   he: string;
@@ -51,6 +52,9 @@ const GROUPS: Group[] = [
       { he: 'השליחות', es: 'Misión de vida', desc: 'Tu identidad, tu para qué, tu midá principal.', to: '/mision?t=identidad' },
       { he: 'שלבים', es: 'Etapas de vida', desc: 'Define y compara las etapas por las que vas pasando.', to: '/mision?t=etapas' },
       { he: 'מטרות', es: 'Metas', desc: 'Del día a la semana, al mes, al año, a la misión.', to: '/mision?t=metas' },
+      ...(getGender() === 'mujer'
+        ? [{ he: 'מצוות הנשים', es: 'Mitzvot de la mujer', desc: 'Jalá, velas, taharat hamishpajá, kisui rosh, tu cocina, tu casa y tu oración: las tuyas, explicadas.', to: '/mujer' }]
+        : []),
       { he: 'מצוות', es: 'Mitzvot que sigo', desc: 'El catálogo que eliges seguir cada día.', to: '/mision?t=identidad#mitzvot' },
       { he: 'נפילות שאני שומר', es: 'Caídas que vigilo', desc: 'Lo que le pides al sistema que cuente y te confronte.', to: '/mision?t=identidad#caidas' },
     ],

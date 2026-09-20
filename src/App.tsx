@@ -24,6 +24,7 @@ import Areas from './pages/Areas';
 import Tora from './pages/Tora';
 import Admin from './pages/Admin';
 import Yehudi from './pages/Yehudi';
+import Mujer from './pages/Mujer';
 import KabalaPage from './pages/Kabala';
 import Boleta from './pages/Boleta';
 import Menu from './pages/Menu';
@@ -106,6 +107,7 @@ export default function App() {
         <Route path="tora" element={<Tora />} />
         <Route path="musar" element={<Navigate to="/tora?t=musar" replace />} />
         <Route path="yehudi" element={<Yehudi />} />
+        <Route path="mujer" element={<Mujer />} />
         <Route path="kabala" element={<KabalaPage />} />
         <Route path="boleta" element={<Boleta />} />
         <Route path="menu" element={<Menu />} />

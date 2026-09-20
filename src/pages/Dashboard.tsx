@@ -20,6 +20,7 @@ import ActivityChart from '../components/ActivityChart';
 import MussarLine from '../components/MussarLine';
 import QuickRegister from '../components/QuickRegister';
 import MitzvotToday from '../components/MitzvotToday';
+import Avisos from '../components/Avisos';
 import YahrzeitToday from '../components/YahrzeitToday';
 import type { AreaId, DayRecord, Entry, Goal } from '../lib/db/schema';
 import EntryList from '../components/EntryList';
@@ -95,6 +96,9 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-5">
+      {/* Avisos del admin: hasta arriba */}
+      <Avisos />
+
       {/* Mis kabalot: las que la persona creó, o una invitación a empezar la primera */}
       <KabalotCard />
 

@@ -24,6 +24,7 @@ import {
   type AporteRow,
 } from '../lib/aportes';
 import { AporteForm } from '../components/Aportes';
+import { deleteAviso, listAllAvisos, saveAviso, type Aviso } from '../lib/avisos';
 import { Btn, Card, Field, inputCls } from '../components/ui';
 
 /* ───────────────────────────── Ayudas ───────────────────────────── */
@@ -187,7 +188,7 @@ const chip = (on: boolean) =>
 
 /* ───────────────────────────── Página ───────────────────────────── */
 
-type Tab = 'resumen' | 'personas' | 'aportes' | 'actividad';
+type Tab = 'resumen' | 'personas' | 'aportes' | 'avisos' | 'actividad';
 type Filter = 'todas' | 'en_linea' | 'nuevas' | 'admins' | 'desactivadas';
 type Sort = 'recientes' | 'ultima' | 'nombre' | 'entradas';
 type EventFilter = 'todo' | 'actividad' | 'registros' | 'entradas' | 'aportes' | 'admin';
@@ -207,6 +208,8 @@ export default function Admin() {
   const [events, setEvents] = useState<AdminEvent[] | null>(null);
   const [aportes, setAportes] = useState<AporteRow[] | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [avisos, setAvisos] = useState<Aviso[] | null>(null);
+  const [avisoDraft, setAvisoDraft] = useState<{ id?: string; title: string; body: string }>({ title: '', body: '' });
   const [now, setNow] = useState(() => Date.now());
   const [error, setError] = useState('');
   const [msg, setMsg] = useState('');
@@ -225,13 +228,15 @@ export default function Admin() {
         setUsers(d.users);
         setEvents(d.events);
         setAportes(demoAportes());
+        setAvisos([{ id: 'av-1', title: 'Shabat Shalom', body: 'Que tengan un Shabat de mucha luz. Recuerden encender las velas a tiempo.', active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }]);
         setExtended(true);
       } else {
-        const [u, e, a] = await Promise.all([listUsers(), listEvents(), listAll()]);
+        const [u, e, a, av] = await Promise.all([listUsers(), listEvents(), listAll(), listAllAvisos()]);
         setUsers(u.users);
         setExtended(u.extended);
         setEvents(e);
         setAportes(a);
+        setAvisos(av);
       }
       setNow(Date.now());
     } catch (e) {
@@ -400,6 +405,7 @@ export default function Admin() {
     ['resumen', 'Resumen'],
     ['personas', `Personas${users ? ` (${users.length})` : ''}`],
     ['aportes', `Aportes${pending.length ? ` (${pending.length})` : ''}`],
+    ['avisos', 'Avisos'],
     ['actividad', 'Actividad'],
   ];
 
@@ -430,7 +436,7 @@ export default function Admin() {
       )}
 
       {/* Pestañas grandes */}
-      <div className="grid grid-cols-2 gap-2 rounded-2xl border border-line bg-raised p-1.5 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 rounded-2xl border border-line bg-raised p-1.5 sm:grid-cols-5">
         {TABS.map(([id, label]) => (
           <button
             key={id}
@@ -834,6 +840,112 @@ export default function Admin() {
                     ))}
                 </section>
               )}
+            </>
+          )}
+        </div>
+      )}
+
+      {users && tab === 'avisos' && (
+        <div className="space-y-6">
+          {avisos === null ? (
+            <Card className="border-[var(--danger)] p-4 text-[14px] leading-relaxed text-ink">
+              <strong>Falta activar los avisos.</strong> Pega <code className="text-gold">supabase/avisos.sql</code> en el Editor SQL de
+              Supabase y pulsa Run.
+            </Card>
+          ) : (
+            <>
+              <Card className="space-y-4 p-5">
+                <div>
+                  <h2 className="text-xl text-ink">{avisoDraft.id ? 'Editar aviso' : 'Nuevo aviso para todos'}</h2>
+                  <p className="mt-1 text-[13px] leading-relaxed text-ink-faint">
+                    Sale arriba, en «Hoy» y en «¿Cómo estoy?», para todas las personas, hasta que lo ocultes o lo borres.
+                  </p>
+                </div>
+                <Field label="Título (opcional)">
+                  <input
+                    className={inputCls + ' !py-3'}
+                    value={avisoDraft.title}
+                    maxLength={120}
+                    onChange={(e) => setAvisoDraft({ ...avisoDraft, title: e.target.value })}
+                    placeholder="Por ejemplo: Shabat Shalom"
+                  />
+                </Field>
+                <Field label="Texto del aviso" hint={`${avisoDraft.body.trim().length} / 1000 letras`}>
+                  <textarea
+                    className={inputCls + ' min-h-[8rem]'}
+                    value={avisoDraft.body}
+                    maxLength={1000}
+                    onChange={(e) => setAvisoDraft({ ...avisoDraft, body: e.target.value })}
+                    placeholder="Escribe aquí lo que quieres decirles a todos…"
+                  />
+                </Field>
+                <div className="flex flex-wrap gap-2">
+                  <Btn
+                    disabled={busy || avisoDraft.body.trim().length < 1}
+                    onClick={() =>
+                      run(async () => {
+                        await saveAviso({ id: avisoDraft.id, title: avisoDraft.title.trim(), body: avisoDraft.body.trim(), active: true });
+                        setAvisoDraft({ title: '', body: '' });
+                      }, avisoDraft.id ? 'Aviso actualizado.' : 'Aviso publicado: ya lo ven todos.')
+                    }
+                  >
+                    {avisoDraft.id ? 'Guardar cambios' : 'Publicar aviso'}
+                  </Btn>
+                  {avisoDraft.id && (
+                    <Btn variant="quiet" onClick={() => setAvisoDraft({ title: '', body: '' })}>
+                      Cancelar
+                    </Btn>
+                  )}
+                </div>
+              </Card>
+
+              <section className="space-y-3">
+                <h2 className="text-xl text-ink">Avisos ({avisos.length})</h2>
+                {avisos.length === 0 && <Card className="p-5 text-[15px] text-ink-faint">Todavía no hay avisos.</Card>}
+                {avisos.map((a) => (
+                  <Card key={a.id} className={`space-y-3 p-5 ${a.active ? 'border-gold' : 'opacity-70'}`}>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {a.active ? <Badge tone="green">Visible para todos</Badge> : <Badge tone="muted">Oculto</Badge>}
+                      <span className="text-[13px] text-ink-faint">{dateTime(a.created_at)}</span>
+                    </div>
+                    {a.title && <h3 className="text-[18px] text-ink">{a.title}</h3>}
+                    <p className="whitespace-pre-line text-[15px] leading-relaxed text-ink">{a.body}</p>
+                    <div className="flex flex-wrap gap-2 border-t border-line pt-3">
+                      <Btn
+                        variant="ghost"
+                        disabled={busy}
+                        onClick={() => {
+                          setAvisoDraft({ id: a.id, title: a.title, body: a.body });
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                      >
+                        Editar
+                      </Btn>
+                      <Btn
+                        variant="ghost"
+                        disabled={busy}
+                        onClick={() =>
+                          run(
+                            () => saveAviso({ id: a.id, title: a.title, body: a.body, active: !a.active }),
+                            a.active ? 'Aviso oculto: ya no lo ven.' : 'Aviso visible otra vez.',
+                          )
+                        }
+                      >
+                        {a.active ? 'Ocultar' : 'Mostrar'}
+                      </Btn>
+                      <Btn
+                        variant="danger"
+                        disabled={busy}
+                        onClick={() => {
+                          if (confirm('¿Borrar este aviso para siempre?')) void run(() => deleteAviso(a.id), 'Aviso borrado.');
+                        }}
+                      >
+                        Borrar
+                      </Btn>
+                    </div>
+                  </Card>
+                ))}
+              </section>
             </>
           )}
         </div>
