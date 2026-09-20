@@ -106,6 +106,7 @@ export const DEFAULT_SETTINGS: Settings = {
     boletas: [],
   },
   welcomeDoneAt: null,
+  guideDoneAt: null,
   aiEnabled: false,
   aiProvider: 'anthropic',
   aiModel: 'claude-opus-5',

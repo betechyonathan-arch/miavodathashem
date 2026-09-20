@@ -22,6 +22,7 @@ const GROUPS: Group[] = [
     he: 'הַיּוֹם',
     es: 'El día',
     rows: [
+      { he: 'מדריך', es: 'Cómo usar la app', desc: 'Una guía corta de lo más importante y de cómo registrar.', to: '/guia' },
       { he: 'רישום', es: 'Registrar algo', desc: 'Texto, voz o campos por área. El sistema lo clasifica.', action: 'registrar' },
       { he: 'רישום מהיר', es: 'Toque rápido', desc: 'Elige victoria/caída una vez y toca cada área — sin formulario, sin texto.', action: 'toque-rapido' },
       { he: 'כוונה ליום', es: 'Check-in de la mañana', desc: '4 preguntas cortas para entrar al día con un punto claro.', to: '/check-in' },

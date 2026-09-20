@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import { useZury } from './state/zury';
 import { startCloudSync } from './lib/sync/cloud';
 import { scheduleReminders } from './lib/reminders';
@@ -11,6 +11,8 @@ import MussarLine from './components/MussarLine';
 import Splash from './components/Splash';
 import Kavana from './components/Kavana';
 import Welcome from './components/Welcome';
+import Guia from './components/Guia';
+import { guiaVista, marcarGuiaVista } from './lib/guia';
 import AppShell from './components/AppShell';
 import Dashboard from './pages/Dashboard';
 import CheckIn from './pages/CheckIn';
@@ -30,6 +32,12 @@ import Boleta from './pages/Boleta';
 import Menu from './pages/Menu';
 import Settings from './pages/Settings';
 
+/** «Menú → Cómo usar la app»: la guía otra vez, cuando la persona quiera. */
+function GuiaDeNuevo() {
+  const navigate = useNavigate();
+  return <Guia onDone={() => navigate('/')} />;
+}
+
 export default function App() {
   const ready = useZury((s) => s.ready);
   const init = useZury((s) => s.init);
@@ -37,6 +45,7 @@ export default function App() {
   const settings = useZury((s) => s.settings);
   const [entered, setEntered] = useState(false);
   const [passedKavana, setPassedKavana] = useState(false);
+  const [guideClosed, setGuideClosed] = useState(false);
 
   useEffect(() => {
     initSwAutoUpdate();
@@ -89,6 +98,20 @@ export default function App() {
     return <Kavana onContinue={() => setPassedKavana(true)} />;
   }
 
+  // Guía de uso: una sola vez. Cuentas nuevas (antes de la bienvenida) y cuentas que ya existían
+  // (la primera vez que entran con esta versión). Después no vuelve a salir sola.
+  if (settings && !settings.guideDoneAt && !guiaVista() && !guideClosed) {
+    return (
+      <Guia
+        onDone={() => {
+          marcarGuiaVista();
+          setGuideClosed(true);
+          void saveSettings({ guideDoneAt: new Date().toISOString() });
+        }}
+      />
+    );
+  }
+
   // Cuenta nueva: una bienvenida que explica la app, deja clara la privacidad y sugiere una primera kabalá.
   if (settings && !settings.welcomeDoneAt) return <Welcome />;
 
@@ -108,6 +131,7 @@ export default function App() {
         <Route path="musar" element={<Navigate to="/tora?t=musar" replace />} />
         <Route path="yehudi" element={<Yehudi />} />
         <Route path="mujer" element={<Mujer />} />
+        <Route path="guia" element={<GuiaDeNuevo />} />
         <Route path="kabala" element={<KabalaPage />} />
         <Route path="boleta" element={<Boleta />} />
         <Route path="menu" element={<Menu />} />

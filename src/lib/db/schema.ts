@@ -346,6 +346,8 @@ export interface Settings {
   };
   /** Cuándo terminó la bienvenida de una cuenta nueva. null = aún no la ha visto. */
   welcomeDoneAt?: string | null;
+  /** Cuándo vio (o saltó) la guía de uso. Sale una sola vez. */
+  guideDoneAt?: string | null;
   aiEnabled: boolean; // módulo IA opcional, off por defecto
   aiProvider: 'anthropic';
   aiModel: string; // p. ej. claude-opus-5 / claude-sonnet-5 / claude-haiku-4-5
