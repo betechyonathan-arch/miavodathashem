@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react';
 import { useZury } from '../state/zury';
+import { cachedPresence, fetchPresence, presenceLine } from '../lib/comunidad';
 import { hebrewDateEs, timeHM } from '../lib/format';
 import { pickMusar } from '../lib/musar';
 import { baseMusarContext } from '../lib/musar/context';
@@ -19,6 +21,21 @@ export default function Kavana({ onContinue }: { onContinue: () => void }) {
   const day = useZury((s) => s.day);
   const settings = useZury((s) => s.settings);
   const theme = useZury((s) => s.theme);
+  // «No estás solo»: cuánta gente más está sirviendo. Sale la copia guardada al instante y se
+  // refresca en silencio; si no hay nadie más, o no hay conexión, simplemente no se muestra.
+  const [presence, setPresence] = useState(cachedPresence);
+
+  useEffect(() => {
+    let alive = true;
+    void fetchPresence().then((p) => {
+      if (alive && p) setPresence(p);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const companions = presenceLine(presence);
 
   const tz = settings?.location.tzid;
   const showMusar = (settings?.musar?.density ?? 'clave') !== 'pie';
@@ -58,6 +75,12 @@ export default function Kavana({ onContinue }: { onContinue: () => void }) {
         <span dir="ltr" className="mt-1 block" style={{ color: FAINTER }}>
           Entro a servir a Hashem, ahora, tal como soy.
         </span>
+        {companions && (
+          <span dir="ltr" className="mt-3 flex items-center justify-center gap-2 text-[12px]" style={{ color: GOLD }}>
+            <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: GOLD }} />
+            {companions}
+          </span>
+        )}
       </div>
 
       {/* Pasuk central */}
