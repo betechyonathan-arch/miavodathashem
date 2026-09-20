@@ -64,6 +64,7 @@ const GROUPS: Group[] = [
       { he: 'מראה', es: 'Ambiente', desc: 'Tema día / noche y modo Shabat.', to: '/ajustes#ambiente' },
       { he: 'דין', es: 'Exigencia del sistema', desc: 'Suave, firme o exigente. Nunca te condena.', to: '/ajustes#exigencia' },
       { he: 'תזכורות', es: 'Recordatorios', desc: '3 avisos al día a las horas que elijas.', to: '/ajustes#recordatorios' },
+      { he: 'התקנה', es: 'Instalar la app', desc: 'Ábrela como una app en tu teléfono y protege mejor tus datos. Android, iPhone y computadora.', to: '/ajustes#instalar' },
       { he: 'בינה', es: 'Módulo de IA', desc: 'Opcional, invisible: clasifica y resume. Sin chatbot.', to: '/ajustes#ia' },
       { he: 'גיבוי בענן', es: 'Copia en la nube', desc: 'Respaldo y puente entre tus dispositivos.', to: '/ajustes#nube' },
       ...(getSession()?.isAdmin ? [{ he: 'ניהול', es: 'Administración', desc: 'Cuentas de la app: quién es admin, activar, desactivar y borrar. Nunca muestra registros personales.', to: '/admin' }] : []),

@@ -44,9 +44,9 @@ export default defineConfig({
       manifest: {
         name: 'Avodah',
         short_name: 'Avodah',
-        description: 'Sistema personal de Avodat Hashem',
-        lang: 'he',
-        dir: 'rtl',
+        description: 'Sistema de Avodat Hashem: registra tu día, tus kabalot y tu jeshbón hanéfesh, en privado.',
+        lang: 'es',
+        dir: 'ltr',
         theme_color: '#12141f',
         background_color: '#12141f',
         display: 'standalone',

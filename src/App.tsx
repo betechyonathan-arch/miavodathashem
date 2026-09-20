@@ -5,6 +5,7 @@ import { startCloudSync } from './lib/sync/cloud';
 import { scheduleReminders } from './lib/reminders';
 import { getSession } from './lib/auth/session';
 import { initSwAutoUpdate } from './lib/swUpdate';
+import { requestPersistentStorage } from './lib/install';
 import MussarLine from './components/MussarLine';
 import Splash from './components/Splash';
 import Kavana from './components/Kavana';
@@ -37,6 +38,7 @@ export default function App() {
 
   useEffect(() => {
     initSwAutoUpdate();
+    void requestPersistentStorage();
     init().then(() => {
       startCloudSync((json) => useZury.getState().applyRemoteImport(json));
       scheduleReminders(useZury.getState().settings);

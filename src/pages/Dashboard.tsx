@@ -12,6 +12,7 @@ import { pickMusar } from '../lib/musar';
 import { baseMusarContext } from '../lib/musar/context';
 import { computeYehudiCircle } from '../lib/yehudi/circle';
 import KabalotCard from '../components/KabalotCard';
+import { InstallBanner } from '../components/InstallApp';
 import { pendingBoletaPeriod } from '../lib/boleta';
 import { timeHM } from '../lib/format';
 import { Card, Ring, SectionTitle } from '../components/ui';
@@ -96,6 +97,8 @@ export default function Dashboard() {
     <div className="space-y-5">
       {/* Mis kabalot: las que la persona creó, o una invitación a empezar la primera */}
       <KabalotCard />
+
+      <InstallBanner />
 
       {/* Círculo principal */}
       <Card className="relative overflow-hidden p-5">

@@ -11,6 +11,7 @@ import { syncNow } from '../lib/sync/cloud';
 import { Btn, Card, Field, SectionTitle, inputCls } from '../components/ui';
 import AiSettingsCard from '../components/AiSettingsCard';
 import RemindersCard from '../components/RemindersCard';
+import { InstallSection } from '../components/InstallApp';
 import { SCHEMA_VERSION } from '../lib/db/schema';
 import { getSession } from '../lib/auth/session';
 import { logout, updateGender } from '../lib/auth/accounts';
@@ -76,6 +77,7 @@ export default function Settings() {
     ['musar', 'Musar'],
     ['boleta', 'Boletas'],
     ['recordatorios', 'Recordatorios'],
+    ['instalar', 'Instalar'],
     ['ia', 'IA'],
     ['nube', 'Nube'],
     ['cuenta', 'Cuenta'],
@@ -393,6 +395,8 @@ export default function Settings() {
       <section id="recordatorios" className="scroll-mt-24 rounded-2xl">
         <RemindersCard settings={settings} set={set} />
       </section>
+
+      <InstallSection />
 
       <section id="ia" className="scroll-mt-24 rounded-2xl">
         <AiSettingsCard settings={settings} set={set} />

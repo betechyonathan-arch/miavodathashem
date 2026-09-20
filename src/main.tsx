@@ -6,6 +6,7 @@ import { getSession } from './lib/auth/session';
 import { isRecoveryLink, validateSession } from './lib/auth/accounts';
 import { captureReferral } from './lib/referral';
 import { isLegacyHost } from './lib/site';
+import { initInstallCapture } from './lib/install';
 import LegacyDomainBanner from './components/LegacyDomainBanner';
 
 /*
@@ -16,6 +17,7 @@ import LegacyDomainBanner from './components/LegacyDomainBanner';
       su módulo, así que tienen que cargarse con la sesión ya actualizada.
 */
 async function start() {
+  initInstallCapture(); // el navegador avisa una sola vez que la app se puede instalar
   captureReferral(); // enlace personal de invitación: ?ref=CODIGO
   // Llegó desde el enlace "olvidé mi contraseña": solo se muestra la pantalla de contraseña nueva.
   if (isRecoveryLink()) {
