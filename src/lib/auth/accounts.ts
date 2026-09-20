@@ -14,6 +14,7 @@ import Dexie, { type Table } from 'dexie';
 import { backendConfigured, supabase } from '../supabase';
 import { clearSession, getSession, setSession, type Gender, type Session } from './session';
 import { clearReferral, getStoredReferral } from '../referral';
+import { siteOrigin } from '../site';
 
 export const MIN_PASSWORD = 8;
 
@@ -260,7 +261,7 @@ export async function requestPasswordReset(email: string): Promise<void> {
   const e = normEmail(email);
   if (!EMAIL_RE.test(e)) throw new AuthError('El correo no es válido.');
   if (!supabase) throw new AuthError('Recuperar la contraseña necesita el servidor.');
-  const { error } = await supabase.auth.resetPasswordForEmail(e, { redirectTo: `${window.location.origin}/` });
+  const { error } = await supabase.auth.resetPasswordForEmail(e, { redirectTo: `${siteOrigin()}/` });
   if (error && /rate limit|too many|security purposes|seconds/i.test(error.message)) {
     throw new AuthError('Espera un momento antes de pedir otro enlace.');
   }

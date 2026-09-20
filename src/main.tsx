@@ -5,6 +5,8 @@ import './index.css';
 import { getSession } from './lib/auth/session';
 import { isRecoveryLink, validateSession } from './lib/auth/accounts';
 import { captureReferral } from './lib/referral';
+import { isLegacyHost } from './lib/site';
+import LegacyDomainBanner from './components/LegacyDomainBanner';
 
 /*
   Orden de arranque:
@@ -29,6 +31,7 @@ async function start() {
   const Root = getSession() ? (await import('./App.tsx')).default : (await import('./pages/Auth.tsx')).default;
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
+      {isLegacyHost() && <LegacyDomainBanner />}
       <BrowserRouter>
         <Root />
       </BrowserRouter>

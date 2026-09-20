@@ -6,6 +6,7 @@
   El conteo vive en el servidor (supabase/referidos.sql). Sin servidor no hay enlaces.
 */
 import { backendConfigured, supabase } from './supabase';
+import { siteOrigin } from './site';
 
 const KEY = 'avodah.ref';
 const CODE_RE = /^[a-z0-9]{6,12}$/i;
@@ -60,9 +61,9 @@ export async function getReferralStats(): Promise<ReferralStats> {
   return { code: String(row.code), count: Number(row.referred_count ?? 0) };
 }
 
-/** El enlace usa la dirección desde la que se abrió la app (sirve con cualquier dominio). */
+/** El enlace usa la dirección oficial (en desarrollo local, la de localhost). */
 export function referralLink(code: string): string {
-  return `${window.location.origin}/?ref=${code}`;
+  return `${siteOrigin()}/?ref=${code}`;
 }
 
 export function inviteMessage(link: string): string {

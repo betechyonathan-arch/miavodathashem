@@ -5,6 +5,8 @@ el sistema organiza, encuentra patrones → reflexionas y mejoras.
 
 > לעבוד את ה׳ בכל דרכיך — *Servir a Hashem en todos tus caminos*
 
+En vivo: **https://miavodathashem.com**
+
 Aplicación web instalable (PWA), pensada primero para el teléfono. En español, con el
 hebreo como lengua principal de los textos.
 
