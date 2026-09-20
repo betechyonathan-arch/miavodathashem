@@ -42,7 +42,7 @@ export default function Welcome() {
           <div className="text-[12px] font-medium uppercase tracking-[0.16em] text-gold">Tu información es privada</div>
           <p className="mt-1.5 text-[13px] leading-relaxed text-ink">
             Todo lo que registras — tu día, tus kabalot, tus metas — se guarda <strong>solo en tu dispositivo</strong>.
-            Nadie más puede verlo: ni los administradores de la app ni quien la creó.
+            Nadie más puede verlo: ni los administradores de la app ni quien la creó. Lo único que ve un administrador es tu nombre, tu correo y cuándo entras.
           </p>
         </Card>
 

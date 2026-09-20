@@ -1,46 +1,211 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getSession } from '../lib/auth/session';
+import { requestPasswordReset } from '../lib/auth/accounts';
 import { backendConfigured } from '../lib/supabase';
 import {
   addAdminByEmail,
   AdminError,
   deleteUser,
+  listEvents,
   listUsers,
   setAdmin,
   setDisabled,
+  type AdminEvent,
   type AdminUser,
+  type EventKind,
 } from '../lib/admin';
-import { Btn, Card, Field, SectionTitle, inputCls } from '../components/ui';
+import { Btn, Card, Field, inputCls } from '../components/ui';
 
-const fmtDate = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : '—');
+/* ───────────────────────────── Ayudas ───────────────────────────── */
+
+const ONLINE_MS = 5 * 60_000; // la app avisa cada ~2 min: 5 min sin señal = ya no está en línea
+const REFRESH_MS = 30_000;
+
+const DEMO = import.meta.env.DEV && new URLSearchParams(window.location.search).get('demo') === '1';
+
+function ago(iso: string | null, now: number): string {
+  if (!iso) return 'nunca';
+  const s = Math.max(0, Math.round((now - new Date(iso).getTime()) / 1000));
+  if (s < 60) return 'justo ahora';
+  const m = Math.round(s / 60);
+  if (m < 60) return `hace ${m} min`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `hace ${h} h`;
+  const d = Math.round(h / 24);
+  if (d === 1) return 'ayer';
+  if (d < 30) return `hace ${d} días`;
+  return new Date(iso).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function dateTime(iso: string | null): string {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleString('es-MX', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+}
+
+const hhmm = (iso: string) =>
+  new Date(iso).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
+
+function dayLabel(iso: string, now: number): string {
+  const d = new Date(iso);
+  const start = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diff = Math.round((start(new Date(now)) - start(d)) / 86_400_000);
+  if (diff === 0) return 'Hoy';
+  if (diff === 1) return 'Ayer';
+  return d.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
+}
+
+const isOnline = (u: AdminUser, now: number) =>
+  !!u.last_seen_at && now - new Date(u.last_seen_at).getTime() < ONLINE_MS;
+
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+
+/* ───────────────────────────── Datos de muestra (solo desarrollo) ───────────────────────────── */
+
+function demoData(): { users: AdminUser[]; events: AdminEvent[] } {
+  const now = Date.now();
+  const min = 60_000;
+  const mk = (i: number, o: Partial<AdminUser>): AdminUser => ({
+    id: `demo-${i}`,
+    email: `persona${i}@ejemplo.com`,
+    full_name: '',
+    gender: 'hombre',
+    role: 'user',
+    disabled: false,
+    created_at: new Date(now - 3 * 86_400_000).toISOString(),
+    last_seen_at: null,
+    last_login_at: null,
+    login_count: 0,
+    referred_by: null,
+    referral_code: `demo${i}abc`,
+    ...o,
+  });
+  const users = [
+    mk(1, { full_name: 'Isaac Cohen (tú)', email: 'admin@ejemplo.com', role: 'admin', created_at: new Date(now - 30 * 86_400_000).toISOString(), last_seen_at: new Date(now - 1 * min).toISOString(), login_count: 84 }),
+    mk(2, { full_name: 'Sara Levy', gender: 'mujer', created_at: new Date(now - 2 * 86_400_000).toISOString(), last_seen_at: new Date(now - 2 * min).toISOString(), login_count: 9, referred_by: 'demo-1' }),
+    mk(3, { full_name: 'David Mizrahi', created_at: new Date(now - 5 * 86_400_000).toISOString(), last_seen_at: new Date(now - 47 * min).toISOString(), login_count: 14, referred_by: 'demo-1' }),
+    mk(4, { full_name: 'Rivka Ben-David', gender: 'mujer', created_at: new Date(now - 1 * 86_400_000).toISOString(), last_seen_at: new Date(now - 3 * min).toISOString(), login_count: 3, referred_by: 'demo-2' }),
+    mk(5, { full_name: 'Moshe Attias', created_at: new Date(now - 20 * 86_400_000).toISOString(), last_seen_at: new Date(now - 9 * 86_400_000).toISOString(), login_count: 22 }),
+    mk(6, { full_name: 'Leah Sasson', gender: 'mujer', created_at: new Date(now - 40 * 60 * min).toISOString(), last_seen_at: new Date(now - 40 * 60 * min).toISOString(), login_count: 1, referred_by: 'demo-2' }),
+    mk(7, { full_name: 'Yosef Romano', disabled: true, created_at: new Date(now - 12 * 86_400_000).toISOString(), last_seen_at: new Date(now - 11 * 86_400_000).toISOString(), login_count: 4 }),
+  ];
+  const ev = (i: number, at: number, kind: EventKind, user: string, actor?: string): AdminEvent => {
+    const u = users.find((x) => x.id === user);
+    return { id: i, at: new Date(at).toISOString(), kind, user_id: user, actor_id: actor ?? null, detail: { nombre: u?.full_name, correo: u?.email } };
+  };
+  const events = [
+    ev(1, now - 1 * min, 'entrada', 'demo-1'),
+    ev(2, now - 2 * min, 'entrada', 'demo-2'),
+    ev(3, now - 3 * min, 'entrada', 'demo-4'),
+    ev(4, now - 20 * min, 'registro', 'demo-4'),
+    ev(5, now - 47 * min, 'entrada', 'demo-3'),
+    ev(6, now - 40 * 60 * min, 'registro', 'demo-6'),
+    ev(7, now - 26 * 60 * min, 'admin_otorgado', 'demo-1', 'demo-1'),
+    ev(8, now - 2 * 86_400_000, 'registro', 'demo-2'),
+    ev(9, now - 11 * 86_400_000, 'cuenta_desactivada', 'demo-7', 'demo-1'),
+  ];
+  return { users, events };
+}
+
+/* ───────────────────────────── Piezas ───────────────────────────── */
+
+function Stat({ label, value, hint, live }: { label: string; value: string | number; hint?: string; live?: boolean }) {
+  return (
+    <Card className="p-5">
+      <div className="flex items-center gap-2 text-[13px] font-medium uppercase tracking-[0.14em] text-ink-faint">
+        {live && <span className="inline-block h-2.5 w-2.5 animate-pulse rounded-full bg-[var(--success)]" />}
+        {label}
+      </div>
+      <div className="mt-1 text-5xl leading-none text-ink">{value}</div>
+      {hint && <div className="mt-2 text-[13px] text-ink-faint">{hint}</div>}
+    </Card>
+  );
+}
+
+function Badge({ children, tone }: { children: React.ReactNode; tone: 'gold' | 'green' | 'red' | 'muted' }) {
+  const cls = {
+    gold: 'bg-gold text-[#1a140a]',
+    green: 'border border-[var(--success)] text-[var(--success)]',
+    red: 'border border-[var(--danger)] text-[var(--danger)]',
+    muted: 'border border-line text-ink-faint',
+  }[tone];
+  return <span className={`rounded-md px-2 py-0.5 text-[12px] font-medium uppercase tracking-wide ${cls}`}>{children}</span>;
+}
+
+function Fact({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="min-w-0">
+      <div className="text-[12px] uppercase tracking-[0.12em] text-ink-faint">{label}</div>
+      <div className="mt-0.5 text-[15px] text-ink">{children}</div>
+    </div>
+  );
+}
+
+const chip = (on: boolean) =>
+  `rounded-xl border px-4 py-2.5 text-[15px] transition-colors ${on ? 'border-gold bg-gold font-medium text-[#1a140a]' : 'border-line bg-raised text-ink-soft hover:border-gold'}`;
+
+/* ───────────────────────────── Página ───────────────────────────── */
+
+type Tab = 'resumen' | 'personas' | 'actividad';
+type Filter = 'todas' | 'en_linea' | 'nuevas' | 'admins' | 'desactivadas';
+type Sort = 'recientes' | 'ultima' | 'nombre' | 'entradas';
+type EventFilter = 'todo' | 'registros' | 'entradas' | 'admin';
 
 /**
- * Panel de administración: quién tiene cuenta, quién es admin, activar/desactivar y
- * borrar cuentas. NO muestra ningún registro personal — esos datos no están aquí.
+ * Panel de administración: quién tiene cuenta, quién está en línea, quién se registró y cuándo
+ * entra cada persona. NUNCA muestra lo que registra cada quien (caídas, logros, kabalot…):
+ * eso vive solo en su dispositivo y no existe en el servidor.
  */
 export default function Admin() {
   const me = getSession();
+  const [tab, setTab] = useState<Tab>('resumen');
   const [users, setUsers] = useState<AdminUser[] | null>(null);
+  const [extended, setExtended] = useState(true);
+  const [events, setEvents] = useState<AdminEvent[] | null>(null);
+  const [now, setNow] = useState(() => Date.now());
   const [error, setError] = useState('');
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
   const [q, setQ] = useState('');
+  const [filter, setFilter] = useState<Filter>('todas');
+  const [sort, setSort] = useState<Sort>('recientes');
+  const [evFilter, setEvFilter] = useState<EventFilter>('todo');
   const [newAdmin, setNewAdmin] = useState('');
 
   const load = useCallback(async () => {
     setError('');
     try {
-      setUsers(await listUsers());
+      if (DEMO) {
+        const d = demoData();
+        setUsers(d.users);
+        setEvents(d.events);
+        setExtended(true);
+      } else {
+        const [u, e] = await Promise.all([listUsers(), listEvents()]);
+        setUsers(u.users);
+        setExtended(u.extended);
+        setEvents(e);
+      }
+      setNow(Date.now());
     } catch (e) {
-      setError(e instanceof AdminError ? e.message : 'No se pudo cargar la lista.');
+      setError(e instanceof AdminError ? e.message : 'No se pudo cargar el panel.');
     }
   }, []);
 
   useEffect(() => {
     void load();
+    const t = window.setInterval(() => void load(), REFRESH_MS);
+    return () => window.clearInterval(t);
   }, [load]);
 
   async function run(action: () => Promise<void>, ok: string) {
+    if (DEMO) return setMsg('(Modo de muestra: no se cambió nada.)');
     setBusy(true);
     setError('');
     setMsg('');
@@ -49,174 +214,475 @@ export default function Admin() {
       setMsg(ok);
       await load();
     } catch (e) {
-      setError(e instanceof AdminError ? e.message : 'No se pudo completar la acción.');
+      setError(e instanceof Error ? e.message : 'No se pudo completar la acción.');
     } finally {
       setBusy(false);
     }
   }
 
-  const shown = useMemo(() => {
-    const t = q.trim().toLowerCase();
-    if (!users) return [];
-    return t ? users.filter((u) => u.email.toLowerCase().includes(t) || u.full_name.toLowerCase().includes(t)) : users;
-  }, [users, q]);
+  const byId = useMemo(() => new Map((users ?? []).map((u) => [u.id, u])), [users]);
+
+  const invitedCount = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const u of users ?? []) if (u.referred_by) m.set(u.referred_by, (m.get(u.referred_by) ?? 0) + 1);
+    return m;
+  }, [users]);
 
   const stats = useMemo(() => {
     const list = users ?? [];
-    const week = Date.now() - 7 * 86_400_000;
+    const day0 = new Date(now);
+    day0.setHours(0, 0, 0, 0);
+    const week = now - 7 * 86_400_000;
+    const t = (s: string | null) => (s ? new Date(s).getTime() : 0);
     return {
       total: list.length,
+      online: list.filter((u) => isOnline(u, now)),
+      enteredToday: list.filter((u) => t(u.last_seen_at) >= day0.getTime()).length,
+      active7: list.filter((u) => t(u.last_seen_at) >= week).length,
+      registeredToday: list.filter((u) => t(u.created_at) >= day0.getTime()).length,
+      registered7: list.filter((u) => t(u.created_at) >= week).length,
       admins: list.filter((u) => u.role === 'admin').length,
-      active7: list.filter((u) => u.last_seen_at && new Date(u.last_seen_at).getTime() > week).length,
       women: list.filter((u) => u.gender === 'mujer').length,
       men: list.filter((u) => u.gender === 'hombre').length,
+      disabled: list.filter((u) => u.disabled).length,
+      viaInvite: list.filter((u) => u.referred_by).length,
     };
-  }, [users]);
+  }, [users, now]);
 
-  if (!backendConfigured) {
-    return (
-      <div className="space-y-4">
-        <SectionTitle es="Administración" he="ניהול" />
-        <Card className="p-4 text-[14px] text-ink-soft">
-          El panel necesita el servidor (Supabase). Configura VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY en .env.local.
-        </Card>
-      </div>
-    );
+  const shown = useMemo(() => {
+    let list = users ?? [];
+    const term = q.trim().toLowerCase();
+    if (term) list = list.filter((u) => u.email.toLowerCase().includes(term) || u.full_name.toLowerCase().includes(term));
+    const week = now - 7 * 86_400_000;
+    if (filter === 'en_linea') list = list.filter((u) => isOnline(u, now));
+    if (filter === 'nuevas') list = list.filter((u) => new Date(u.created_at).getTime() >= week);
+    if (filter === 'admins') list = list.filter((u) => u.role === 'admin');
+    if (filter === 'desactivadas') list = list.filter((u) => u.disabled);
+    const t = (s: string | null) => (s ? new Date(s).getTime() : 0);
+    const sorted = [...list];
+    if (sort === 'recientes') sorted.sort((a, b) => t(b.created_at) - t(a.created_at));
+    if (sort === 'ultima') sorted.sort((a, b) => t(b.last_seen_at) - t(a.last_seen_at));
+    if (sort === 'nombre') sorted.sort((a, b) => (a.full_name || a.email).localeCompare(b.full_name || b.email, 'es'));
+    if (sort === 'entradas') sorted.sort((a, b) => b.login_count - a.login_count);
+    return sorted;
+  }, [users, q, filter, sort, now]);
+
+  const eventsShown = useMemo(() => {
+    const list = events ?? [];
+    const admin: EventKind[] = ['admin_otorgado', 'admin_quitado', 'cuenta_desactivada', 'cuenta_activada', 'cuenta_borrada'];
+    if (evFilter === 'registros') return list.filter((e) => e.kind === 'registro');
+    if (evFilter === 'entradas') return list.filter((e) => e.kind === 'entrada');
+    if (evFilter === 'admin') return list.filter((e) => admin.includes(e.kind));
+    return list;
+  }, [events, evFilter]);
+
+  function exportCsv() {
+    const esc = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
+    const rows = [
+      ['Nombre', 'Correo', 'Género', 'Rol', 'Estado', 'Se registró', 'Última vez', 'Entradas', 'Personas que invitó'],
+      ...shown.map((u) => [
+        u.full_name,
+        u.email,
+        u.gender ?? '',
+        u.role === 'admin' ? 'Admin' : 'Usuario',
+        u.disabled ? 'Desactivada' : 'Activa',
+        dateTime(u.created_at),
+        dateTime(u.last_seen_at),
+        u.login_count,
+        invitedCount.get(u.id) ?? 0,
+      ]),
+    ];
+    const csv = '\uFEFF' + rows.map((r) => r.map(esc).join(',')).join('\r\n'); // BOM: Excel lee bien los acentos
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    a.download = `avodah-personas-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
   }
 
-  if (!me?.isAdmin) {
+  if (!DEMO && !backendConfigured) {
     return (
-      <div className="space-y-4">
-        <SectionTitle es="Administración" he="ניהול" />
-        <Card className="p-4 text-[14px] text-ink-soft">Esta sección es solo para administradores.</Card>
-      </div>
+      <Card className="p-5 text-[15px] text-ink-soft">
+        El panel necesita el servidor (Supabase). Configura VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY en .env.local.
+      </Card>
     );
   }
+  if (!DEMO && !me?.isAdmin) {
+    return <Card className="p-5 text-[15px] text-ink-soft">Esta sección es solo para administradores.</Card>;
+  }
+
+  const who = (id: string | null, fallback?: { nombre?: string; correo?: string }) => {
+    const u = id ? byId.get(id) : undefined;
+    return u?.full_name || u?.email || fallback?.nombre || fallback?.correo || 'Alguien';
+  };
+
+  const describe = (e: AdminEvent): string => {
+    const name = who(e.user_id, e.detail);
+    const actor = who(e.actor_id);
+    switch (e.kind) {
+      case 'registro':
+        return e.detail.invitado_por ? `${name} se registró con la invitación de ${who(e.detail.invitado_por)}` : `${name} se registró`;
+      case 'entrada':
+        return `${name} entró a la app`;
+      case 'admin_otorgado':
+        return `${actor} hizo admin a ${name}`;
+      case 'admin_quitado':
+        return `${actor} quitó el permiso de admin a ${name}`;
+      case 'cuenta_desactivada':
+        return `${actor} desactivó la cuenta de ${name}`;
+      case 'cuenta_activada':
+        return `${actor} volvió a activar la cuenta de ${name}`;
+      case 'cuenta_borrada':
+        return `${actor} borró la cuenta de ${name}`;
+    }
+  };
+
+  const dotColor = (k: EventKind) =>
+    k === 'registro' ? 'bg-gold' : k === 'entrada' ? 'bg-[var(--success)]' : k === 'cuenta_borrada' || k === 'cuenta_desactivada' ? 'bg-[var(--danger)]' : 'bg-ink-faint';
+
+  const TABS: [Tab, string][] = [
+    ['resumen', 'Resumen'],
+    ['personas', `Personas${users ? ` (${users.length})` : ''}`],
+    ['actividad', 'Actividad'],
+  ];
 
   return (
-    <div className="space-y-5">
-      <SectionTitle es="Administración" he="ניהול" />
+    <div className="space-y-6">
+      {/* Encabezado */}
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <div className="hebrew text-3xl text-gold" style={{ direction: 'ltr', textAlign: 'left' }}>ניהול</div>
+          <h1 className="text-3xl text-ink">Panel de administración</h1>
+          <p className="mt-1 max-w-xl text-[14px] leading-relaxed text-ink-soft">
+            Ves quién tiene cuenta, quién está en línea y cuándo entra cada persona.{' '}
+            <span className="text-ink">Nunca ves lo que registran</span> (caídas, logros, kabalot): eso solo vive en su dispositivo.
+          </p>
+        </div>
+        <div className="text-right text-[13px] text-ink-faint">
+          Actualizado {ago(new Date(now).toISOString(), Date.now())}
+          <div>
+            <button onClick={() => void load()} className="mt-1 text-[15px] text-gold underline underline-offset-2">
+              Actualizar ahora
+            </button>
+          </div>
+        </div>
+      </div>
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {[
-          ['Cuentas', stats.total],
-          ['Activas (7 días)', stats.active7],
-          ['Admins', stats.admins],
-          ['Mujeres / Hombres', `${stats.women} / ${stats.men}`],
-        ].map(([label, value]) => (
-          <Card key={label as string} className="p-3">
-            <div className="text-[11px] uppercase tracking-[0.14em] text-ink-faint">{label}</div>
-            <div className="mt-0.5 text-2xl text-ink">{value}</div>
-          </Card>
+      {DEMO && (
+        <Card className="border-gold p-3 text-[13px] text-gold">Modo de muestra: estos datos son de ejemplo y no se guarda nada.</Card>
+      )}
+
+      {/* Pestañas grandes */}
+      <div className="grid grid-cols-3 gap-2 rounded-2xl border border-line bg-raised p-1.5">
+        {TABS.map(([id, label]) => (
+          <button
+            key={id}
+            onClick={() => setTab(id)}
+            className={`rounded-xl py-3 text-[16px] transition-colors ${tab === id ? 'bg-gold font-medium text-[#1a140a]' : 'text-ink-soft hover:text-ink'}`}
+          >
+            {label}
+          </button>
         ))}
       </div>
 
-      <Card className="space-y-3 p-4">
-        <SectionTitle es="Hacer admin a otra persona" he="מנהל חדש" />
-        <p className="text-[12px] text-ink-faint">
-          Debe haberse registrado antes en la app con ese correo. Un admin puede ver la lista de cuentas y
-          administrarlas, pero nunca ve los registros personales de nadie.
-        </p>
-        <form
-          className="flex gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!newAdmin.trim()) return;
-            void run(async () => {
-              await addAdminByEmail(newAdmin);
-              setNewAdmin('');
-            }, 'Listo: ahora es admin.');
-          }}
-        >
-          <input
-            className={inputCls}
-            type="email"
-            placeholder="correo@ejemplo.com"
-            value={newAdmin}
-            onChange={(e) => setNewAdmin(e.target.value)}
-            aria-label="Correo de la nueva persona admin"
-          />
-          <Btn type="submit" disabled={busy}>
-            Hacer admin
-          </Btn>
-        </form>
-      </Card>
+      {!extended && (
+        <Card className="border-[var(--danger)] p-4 text-[14px] leading-relaxed text-ink">
+          <strong>Falta activar la auditoría.</strong> Sin ella no se ven las entradas ni la actividad. Pega{' '}
+          <code className="text-gold">supabase/admin-auditoria.sql</code> en el Editor SQL de Supabase y pulsa Run.
+        </Card>
+      )}
+      {msg && <p className="text-[15px] text-[var(--success)]">{msg}</p>}
+      {error && <p className="text-[15px] text-[var(--danger)]">{error}</p>}
+      {!users && !error && <p className="text-[15px] text-ink-faint">Cargando…</p>}
 
-      {msg && <p className="text-[13px] text-[var(--success)]">{msg}</p>}
-      {error && <p className="text-[13px] text-[var(--danger)]">{error}</p>}
+      {users && tab === 'resumen' && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <Stat label="En línea ahora" value={stats.online.length} live hint="con la app abierta" />
+            <Stat label="Entraron hoy" value={stats.enteredToday} />
+            <Stat label="Activas en 7 días" value={stats.active7} />
+            <Stat label="Cuentas en total" value={stats.total} />
+            <Stat label="Registradas hoy" value={stats.registeredToday} />
+            <Stat label="Registradas en 7 días" value={stats.registered7} />
+            <Stat label="Llegaron por invitación" value={stats.viaInvite} hint="con el enlace de alguien" />
+            <Stat label="Admins" value={stats.admins} hint={stats.disabled ? `${plural(stats.disabled, 'desactivada', 'desactivadas')}` : undefined} />
+          </div>
 
-      <section className="space-y-3">
-        <Field label="Buscar cuenta">
-          <input className={inputCls} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Nombre o correo" />
-        </Field>
-
-        {!users && !error && <p className="text-[13px] text-ink-faint">Cargando cuentas…</p>}
-        {users && shown.length === 0 && <p className="text-[13px] text-ink-faint">No hay cuentas que coincidan.</p>}
-
-        <div className="space-y-2">
-          {shown.map((u) => {
-            const self = u.id === me.userId;
-            return (
-              <Card key={u.id} className={`space-y-2 p-3 ${u.disabled ? 'opacity-60' : ''}`}>
-                <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-                  <div className="min-w-0">
-                    <span className="text-[15px] text-ink">{u.full_name || '(sin nombre)'}</span>
-                    {u.role === 'admin' && (
-                      <span className="ms-2 rounded bg-gold px-1.5 py-0.5 text-[10px] font-medium uppercase text-[#1a140a]">admin</span>
-                    )}
-                    {u.disabled && (
-                      <span className="ms-2 rounded border border-[var(--danger)] px-1.5 py-0.5 text-[10px] uppercase text-[var(--danger)]">
-                        desactivada
-                      </span>
-                    )}
-                    {self && <span className="ms-2 text-[11px] text-ink-faint">(tú)</span>}
-                  </div>
-                  <span className="text-[11px] text-ink-faint">
-                    {u.gender ?? '—'} · alta {fmtDate(u.created_at)} · último acceso {fmtDate(u.last_seen_at)}
-                  </span>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Card className="p-5">
+              <div className="text-[13px] font-medium uppercase tracking-[0.14em] text-ink-faint">Mujeres y hombres</div>
+              <div className="mt-2 flex items-baseline gap-6">
+                <div>
+                  <span className="text-3xl text-ink">{stats.women}</span> <span className="text-[14px] text-ink-soft">mujeres</span>
                 </div>
-                <div className="break-all text-[13px] text-ink-soft">{u.email}</div>
-                {!self && (
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    <Btn
-                      variant="ghost"
-                      disabled={busy}
-                      onClick={() =>
-                        run(
-                          () => setAdmin(u.id, u.role !== 'admin'),
-                          u.role === 'admin' ? 'Ya no es admin.' : 'Ahora es admin.',
-                        )
-                      }
-                    >
-                      {u.role === 'admin' ? 'Quitar admin' : 'Hacer admin'}
-                    </Btn>
-                    <Btn
-                      variant="ghost"
-                      disabled={busy}
-                      onClick={() =>
-                        run(() => setDisabled(u.id, !u.disabled), u.disabled ? 'Cuenta activada.' : 'Cuenta desactivada.')
-                      }
-                    >
-                      {u.disabled ? 'Activar' : 'Desactivar'}
-                    </Btn>
-                    <Btn
-                      variant="danger"
-                      disabled={busy}
-                      onClick={() => {
-                        if (confirm(`¿Borrar la cuenta de ${u.email}? No se puede deshacer.`)) {
-                          void run(() => deleteUser(u.id), 'Cuenta borrada.');
-                        }
-                      }}
-                    >
-                      Borrar
-                    </Btn>
+                <div>
+                  <span className="text-3xl text-ink">{stats.men}</span> <span className="text-[14px] text-ink-soft">hombres</span>
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          <section className="space-y-3">
+            <h2 className="text-xl text-ink">En línea ahora</h2>
+            {stats.online.length === 0 ? (
+              <Card className="p-5 text-[15px] text-ink-faint">Nadie tiene la app abierta en este momento.</Card>
+            ) : (
+              <Card className="divide-y divide-line">
+                {stats.online.map((u) => (
+                  <div key={u.id} className="flex items-center justify-between gap-3 px-5 py-3.5">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-[var(--success)]" />
+                      <div className="min-w-0">
+                        <div className="truncate text-[16px] text-ink">{u.full_name || '(sin nombre)'}</div>
+                        <div className="truncate text-[13px] text-ink-faint">{u.email}</div>
+                      </div>
+                    </div>
+                    <span className="shrink-0 text-[13px] text-ink-faint">{ago(u.last_seen_at, now)}</span>
                   </div>
-                )}
+                ))}
               </Card>
-            );
-          })}
+            )}
+          </section>
+
+          <section className="space-y-3">
+            <div className="flex items-baseline justify-between">
+              <h2 className="text-xl text-ink">Últimos registros</h2>
+              <button onClick={() => setTab('personas')} className="text-[14px] text-gold underline underline-offset-2">
+                Ver todas las personas
+              </button>
+            </div>
+            <Card className="divide-y divide-line">
+              {[...users]
+                .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                .slice(0, 8)
+                .map((u) => (
+                  <div key={u.id} className="flex items-center justify-between gap-3 px-5 py-3.5">
+                    <div className="min-w-0">
+                      <div className="truncate text-[16px] text-ink">{u.full_name || '(sin nombre)'}</div>
+                      <div className="truncate text-[13px] text-ink-faint">{u.email}</div>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <div className="text-[14px] text-ink">{ago(u.created_at, now)}</div>
+                      <div className="text-[12px] text-ink-faint">{dateTime(u.created_at)}</div>
+                    </div>
+                  </div>
+                ))}
+            </Card>
+          </section>
         </div>
-      </section>
+      )}
+
+      {users && tab === 'personas' && (
+        <div className="space-y-5">
+          <Card className="space-y-3 p-5">
+            <h2 className="text-lg text-ink">Hacer admin a otra persona</h2>
+            <p className="text-[13px] leading-relaxed text-ink-faint">
+              Debe haberse registrado antes en la app con ese correo. Un admin ve la lista de cuentas y las administra, pero nunca
+              ve lo que registran.
+            </p>
+            <form
+              className="flex flex-wrap gap-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!newAdmin.trim()) return;
+                void run(async () => {
+                  await addAdminByEmail(newAdmin);
+                  setNewAdmin('');
+                }, 'Listo: ahora es admin.');
+              }}
+            >
+              <input
+                className={inputCls + ' min-w-0 flex-1 !py-3'}
+                type="email"
+                placeholder="correo@ejemplo.com"
+                value={newAdmin}
+                onChange={(e) => setNewAdmin(e.target.value)}
+                aria-label="Correo de la nueva persona admin"
+              />
+              <Btn type="submit" disabled={busy} className="!py-3">
+                Hacer admin
+              </Btn>
+            </form>
+          </Card>
+
+          <div className="space-y-3">
+            <Field label="Buscar por nombre o correo">
+              <input className={inputCls + ' !py-3 !text-[16px]'} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Escribe para buscar…" />
+            </Field>
+            <div className="flex flex-wrap gap-2">
+              {(
+                [
+                  ['todas', 'Todas'],
+                  ['en_linea', `En línea (${stats.online.length})`],
+                  ['nuevas', 'Nuevas (7 días)'],
+                  ['admins', 'Admins'],
+                  ['desactivadas', 'Desactivadas'],
+                ] as [Filter, string][]
+              ).map(([id, label]) => (
+                <button key={id} onClick={() => setFilter(id)} className={chip(filter === id)}>
+                  {label}
+                </button>
+              ))}
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <label className="flex items-center gap-2 text-[14px] text-ink-soft">
+                Ordenar por
+                <select className={inputCls + ' !w-auto !py-2'} value={sort} onChange={(e) => setSort(e.target.value as Sort)}>
+                  <option value="recientes">Más nuevas primero</option>
+                  <option value="ultima">Última vez que entraron</option>
+                  <option value="entradas">Más entradas</option>
+                  <option value="nombre">Nombre (A–Z)</option>
+                </select>
+              </label>
+              <div className="flex items-center gap-3">
+                <span className="text-[14px] text-ink-faint">{plural(shown.length, 'persona', 'personas')}</span>
+                <Btn variant="ghost" onClick={exportCsv} disabled={shown.length === 0}>
+                  Descargar lista (Excel)
+                </Btn>
+              </div>
+            </div>
+          </div>
+
+          {shown.length === 0 && <p className="text-[15px] text-ink-faint">No hay personas que coincidan.</p>}
+
+          <div className="space-y-4">
+            {shown.map((u) => {
+              const self = u.id === me?.userId;
+              const online = isOnline(u, now);
+              const inviter = u.referred_by ? byId.get(u.referred_by) : undefined;
+              return (
+                <Card key={u.id} className={`space-y-4 p-5 ${u.disabled ? 'opacity-60' : ''}`}>
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xl text-ink">{u.full_name || '(sin nombre)'}</span>
+                      {online && <Badge tone="green">En línea</Badge>}
+                      {u.role === 'admin' && <Badge tone="gold">Admin</Badge>}
+                      {u.disabled && <Badge tone="red">Desactivada</Badge>}
+                      {self && <Badge tone="muted">Tú</Badge>}
+                    </div>
+                    <div className="mt-1 break-all text-[15px] text-ink-soft">{u.email}</div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3">
+                    <Fact label="Se registró">
+                      {ago(u.created_at, now)}
+                      <div className="text-[13px] text-ink-faint">{dateTime(u.created_at)}</div>
+                    </Fact>
+                    <Fact label="Última vez">
+                      {online ? <span className="text-[var(--success)]">En línea ahora</span> : ago(u.last_seen_at, now)}
+                      {u.last_seen_at && !online && <div className="text-[13px] text-ink-faint">{dateTime(u.last_seen_at)}</div>}
+                    </Fact>
+                    <Fact label="Entradas">{extended ? u.login_count : '—'}</Fact>
+                    <Fact label="Es">{u.gender === 'mujer' ? 'Mujer' : u.gender === 'hombre' ? 'Hombre' : '—'}</Fact>
+                    <Fact label="Invitó a">{plural(invitedCount.get(u.id) ?? 0, 'persona', 'personas')}</Fact>
+                    <Fact label="Llegó por">{inviter ? `Invitación de ${inviter.full_name || inviter.email}` : 'Su cuenta, sin invitación'}</Fact>
+                  </div>
+
+                  {!self && (
+                    <div className="flex flex-wrap gap-2 border-t border-line pt-4">
+                      <Btn
+                        variant="ghost"
+                        disabled={busy}
+                        onClick={() => run(() => setAdmin(u.id, u.role !== 'admin'), u.role === 'admin' ? 'Ya no es admin.' : 'Ahora es admin.')}
+                      >
+                        {u.role === 'admin' ? 'Quitar admin' : 'Hacer admin'}
+                      </Btn>
+                      <Btn
+                        variant="ghost"
+                        disabled={busy}
+                        onClick={() =>
+                          run(
+                            async () => {
+                              try {
+                                await requestPasswordReset(u.email);
+                              } catch (e) {
+                                throw new Error(e instanceof Error ? e.message : 'No se pudo enviar el enlace.');
+                              }
+                            },
+                            `Enviamos a ${u.email} el enlace para crear una contraseña nueva.`,
+                          )
+                        }
+                      >
+                        Enviar enlace de contraseña
+                      </Btn>
+                      <Btn
+                        variant="ghost"
+                        disabled={busy}
+                        onClick={() => run(() => setDisabled(u.id, !u.disabled), u.disabled ? 'Cuenta activada.' : 'Cuenta desactivada.')}
+                      >
+                        {u.disabled ? 'Activar' : 'Desactivar'}
+                      </Btn>
+                      <Btn
+                        variant="danger"
+                        disabled={busy}
+                        onClick={() => {
+                          if (confirm(`¿Borrar la cuenta de ${u.email}? No se puede deshacer.`)) {
+                            void run(() => deleteUser(u.id), 'Cuenta borrada.');
+                          }
+                        }}
+                      >
+                        Borrar
+                      </Btn>
+                    </div>
+                  )}
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {users && tab === 'actividad' && (
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            {(
+              [
+                ['todo', 'Todo'],
+                ['registros', 'Registros'],
+                ['entradas', 'Entradas'],
+                ['admin', 'Acciones de admin'],
+              ] as [EventFilter, string][]
+            ).map(([id, label]) => (
+              <button key={id} onClick={() => setEvFilter(id)} className={chip(evFilter === id)}>
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {events === null ? (
+            <Card className="p-5 text-[15px] text-ink-soft">La actividad todavía no está activada. Falta ejecutar la auditoría (arriba).</Card>
+          ) : eventsShown.length === 0 ? (
+            <Card className="p-5 text-[15px] text-ink-faint">Todavía no hay actividad de este tipo.</Card>
+          ) : (
+            <Card className="divide-y divide-line">
+              {eventsShown.map((e, i) => {
+                const label = dayLabel(e.at, now);
+                const prev = i > 0 ? dayLabel(eventsShown[i - 1].at, now) : null;
+                return (
+                  <div key={e.id}>
+                    {label !== prev && (
+                      <div className="bg-[var(--bg-sunken)] px-5 py-2 text-[13px] font-medium uppercase tracking-[0.14em] text-ink-faint">{label}</div>
+                    )}
+                    <div className="flex items-start gap-3 px-5 py-3.5">
+                      <span className="w-12 shrink-0 pt-0.5 text-[14px] tabular-nums text-ink-faint">{hhmm(e.at)}</span>
+                      <span className={`mt-2 h-2.5 w-2.5 shrink-0 rounded-full ${dotColor(e.kind)}`} />
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[15px] leading-snug text-ink">{describe(e)}</div>
+                        {e.detail.correo && <div className="truncate text-[13px] text-ink-faint">{e.detail.correo}</div>}
+                      </div>
+                      <span className="shrink-0 text-[12px] text-ink-faint">{ago(e.at, now)}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </Card>
+          )}
+          <p className="text-[12px] leading-relaxed text-ink-faint">
+            Se muestran los últimos {events?.length ?? 0} eventos. Una "entrada" se cuenta cuando alguien abre la app después de más de 30
+            minutos sin usarla.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

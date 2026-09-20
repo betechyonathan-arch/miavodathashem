@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useZury } from '../state/zury';
 import { useSync } from '../state/sync';
 import { hebrewDateEs } from '../lib/format';
@@ -29,6 +29,7 @@ const NAV_RIGHT = [
 ];
 
 export default function AppShell() {
+  const wide = useLocation().pathname.startsWith('/admin'); // el panel de admin usa más ancho
   const day = useZury((s) => s.day);
   const theme = useZury((s) => s.theme);
   const syncStatus = useSync((s) => s.status);
@@ -55,7 +56,7 @@ export default function AppShell() {
     }`;
 
   return (
-    <div className="themed-transition mx-auto flex min-h-full max-w-lg flex-col">
+    <div className={`themed-transition mx-auto flex min-h-full flex-col ${wide ? 'max-w-5xl' : 'max-w-lg'}`}>
       {/* Header */}
       <header className="safe-top sticky top-0 z-30 border-b border-line bg-bg/85 px-4 py-3 backdrop-blur">
         <div className="mb-1 flex items-center justify-end">

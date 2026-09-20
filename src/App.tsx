@@ -6,6 +6,7 @@ import { scheduleReminders } from './lib/reminders';
 import { getSession } from './lib/auth/session';
 import { initSwAutoUpdate } from './lib/swUpdate';
 import { requestPersistentStorage } from './lib/install';
+import { startPresence } from './lib/presence';
 import MussarLine from './components/MussarLine';
 import Splash from './components/Splash';
 import Kavana from './components/Kavana';
@@ -39,10 +40,12 @@ export default function App() {
   useEffect(() => {
     initSwAutoUpdate();
     void requestPersistentStorage();
+    const stopPresence = startPresence(); // cuánta gente está en línea, para el panel de admin
     init().then(() => {
       startCloudSync((json) => useZury.getState().applyRemoteImport(json));
       scheduleReminders(useZury.getState().settings);
     });
+    return stopPresence;
   }, [init]);
 
   useEffect(() => {
@@ -107,7 +110,9 @@ export default function App() {
         <Route path="boleta" element={<Boleta />} />
         <Route path="menu" element={<Menu />} />
         <Route path="ajustes" element={<Settings />} />
-        {getSession()?.isAdmin && <Route path="admin" element={<Admin />} />}
+        {(getSession()?.isAdmin || (import.meta.env.DEV && new URLSearchParams(window.location.search).get('demo') === '1')) && (
+          <Route path="admin" element={<Admin />} />
+        )}
       </Route>
     </Routes>
   );
