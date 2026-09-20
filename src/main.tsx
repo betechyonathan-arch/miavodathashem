@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import './index.css';
 import { getSession } from './lib/auth/session';
 import { isRecoveryLink, validateSession } from './lib/auth/accounts';
+import { captureReferral } from './lib/referral';
 
 /*
   Orden de arranque:
@@ -13,6 +14,7 @@ import { isRecoveryLink, validateSession } from './lib/auth/accounts';
       su módulo, así que tienen que cargarse con la sesión ya actualizada.
 */
 async function start() {
+  captureReferral(); // enlace personal de invitación: ?ref=CODIGO
   // Llegó desde el enlace "olvidé mi contraseña": solo se muestra la pantalla de contraseña nueva.
   if (isRecoveryLink()) {
     const ResetPassword = (await import('./pages/ResetPassword.tsx')).default;

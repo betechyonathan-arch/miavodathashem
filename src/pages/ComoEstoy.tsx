@@ -12,6 +12,7 @@ import { relative, count } from '../lib/format';
 import { Btn, Card, SectionTitle } from '../components/ui';
 import PeriodDashboard from '../components/PeriodDashboard';
 import WatchedFallsCard from '../components/WatchedFallsCard';
+import InviteCard from '../components/InviteCard';
 import type { AreaId, Entry } from '../lib/db/schema';
 import type { PeriodKind } from '../lib/periods';
 
@@ -77,6 +78,8 @@ export default function ComoEstoy() {
   return (
     <div className="space-y-4">
       <SectionTitle es="¿Cómo estoy?" he="איך אני?" />
+
+      <InviteCard />
 
       <div className="flex gap-1">
         {TABS.map((t) => (

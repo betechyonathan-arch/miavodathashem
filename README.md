@@ -24,6 +24,8 @@ hebreo como lengua principal de los textos.
 - **Torá:** estudio con la biblioteca abierta de [Sefaria](https://www.sefaria.org)
   — Pirkei Avot, Tanaj, Mishná, Guemará, Halajá y miles de pirushim enlazados — más una
   pestaña de **Musar**.
+- **Enlace personal de invitación:** cada persona tiene el suyo en "¿Cómo estoy?" y ve cuántas personas
+  entraron con él (solo un número, nunca quiénes son). Requiere `supabase/referidos.sql`.
 - **Cuentas y panel de administración** con Supabase: registro, login, recuperar
   contraseña, roles y gestión de cuentas. El admin **nunca** ve los registros personales.
 
@@ -46,7 +48,7 @@ navegador). Para cuentas reales y panel de admin, conecta un proyecto de Supabas
 
 1. Copia `.env.example` como `.env.local` y rellena `VITE_SUPABASE_URL` y
    `VITE_SUPABASE_ANON_KEY`.
-2. Ejecuta `supabase/schema.sql` en el SQL Editor de tu proyecto.
+2. Ejecuta `supabase/schema.sql` y después `supabase/referidos.sql` en el SQL Editor de tu proyecto.
 
 Pasos completos, incluido cómo crear el primer admin: [`supabase/LEEME.md`](supabase/LEEME.md).
 

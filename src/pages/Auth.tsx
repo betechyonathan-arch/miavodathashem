@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { Gender } from '../lib/auth/session';
 import { backendConfigured } from '../lib/supabase';
+import { getStoredReferral } from '../lib/referral';
 import { AuthError, MIN_PASSWORD, login, recoveryLinkError, register, requestPasswordReset } from '../lib/auth/accounts';
 import { Btn, Field, inputCls } from '../components/ui';
 
@@ -73,6 +74,13 @@ export default function Auth() {
             La IA es opcional y viene apagada; solo si tú la activas, el texto que elijas analizar se envía a Anthropic.
           </p>
         </div>
+
+        {backendConfigured && mode === 'registro' && getStoredReferral() && (
+          <p className="mb-4 rounded-xl border border-line bg-raised px-4 py-3 text-[13px] leading-relaxed text-ink-soft">
+            Alguien te invitó a Avodah. Esa persona solo verá un número, que entró alguien con su enlace:{' '}
+            <span className="text-ink">nunca tu nombre, tu correo ni nada de lo que registres.</span>
+          </p>
+        )}
 
         <div className="mb-4 grid grid-cols-2 rounded-xl border border-line bg-raised p-1 text-[14px]">
           {(['registro', 'login'] as const).map((m) => (

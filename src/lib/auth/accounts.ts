@@ -13,6 +13,7 @@
 import Dexie, { type Table } from 'dexie';
 import { backendConfigured, supabase } from '../supabase';
 import { clearSession, getSession, setSession, type Gender, type Session } from './session';
+import { clearReferral, getStoredReferral } from '../referral';
 
 export const MIN_PASSWORD = 8;
 
@@ -92,9 +93,11 @@ async function serverRegister(name: string, email: string, password: string, gen
   const { data, error } = await supabase!.auth.signUp({
     email: e,
     password,
-    options: { data: { full_name: name.trim(), gender } },
+    // `ref` = código de quien invitó (si vino por un enlace). El servidor lo valida; uno inválido se ignora.
+    options: { data: { full_name: name.trim(), gender, ...(getStoredReferral() ? { ref: getStoredReferral() } : {}) } },
   });
   if (error) throw new AuthError(friendlyAuthMessage(error.message));
+  clearReferral(); // ya quedó asociado en la cuenta; no se reutiliza
   // Con la confirmación de correo activa, un correo ya registrado no da error: vuelve sin identidades.
   if (data.user && data.user.identities?.length === 0) {
     throw new AuthError('Ya existe una cuenta con ese correo. Entra con tu contraseña.');
