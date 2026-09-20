@@ -9,8 +9,27 @@ import { Btn, Field, inputCls } from '../components/ui';
  * Puerta de entrada: crear cuenta o entrar. Se muestra antes de cargar la app.
  * Al tener éxito se recarga la página para abrir la base de datos de ese usuario.
  */
+const KNOWN_KEY = 'avodah.hasAccount';
+function hasAccountHere(): boolean {
+  try {
+    return localStorage.getItem(KNOWN_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+function rememberAccountHere(): void {
+  try {
+    localStorage.setItem(KNOWN_KEY, '1');
+  } catch {
+    /* sin localStorage: solo se pierde el atajo de abrir en "Entrar" */
+  }
+}
+
 export default function Auth() {
-  const [mode, setMode] = useState<'login' | 'registro' | 'recuperar'>(recoveryLinkError() ? 'recuperar' : 'registro');
+  // Quien ya tuvo cuenta en este dispositivo (y no llega por un enlace de invitación) ve "Entrar" primero.
+  const [mode, setMode] = useState<'login' | 'registro' | 'recuperar'>(
+    recoveryLinkError() ? 'recuperar' : hasAccountHere() && !getStoredReferral() ? 'login' : 'registro',
+  );
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -18,6 +37,12 @@ export default function Auth() {
   const [error, setError] = useState(recoveryLinkError());
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
+
+  function switchTo(m: 'login' | 'registro' | 'recuperar') {
+    setMode(m);
+    setError('');
+    setNotice('');
+  }
 
   useEffect(() => {
     document.documentElement.dataset.mode = 'night';
@@ -46,6 +71,7 @@ export default function Auth() {
       } else {
         await login(email, password);
       }
+      rememberAccountHere();
       window.location.replace('/');
     } catch (err) {
       setError(err instanceof AuthError ? err.message : 'No se pudo completar. Intenta de nuevo.');
@@ -160,7 +186,7 @@ export default function Auth() {
                 setError('');
                 setNotice('');
               }}
-              className="text-[13px] text-gold"
+              className="block text-[14px] text-gold underline underline-offset-2"
             >
               ¿Olvidaste tu contraseña?
             </button>
@@ -174,6 +200,30 @@ export default function Auth() {
             {busy ? '…' : mode === 'registro' ? 'Crear mi cuenta' : mode === 'recuperar' ? 'Enviar enlace' : 'Entrar'}
           </Btn>
         </form>
+
+        {mode === 'registro' && (
+          <p className="mt-3 text-center text-[13px] text-ink-soft">
+            ¿Ya tienes cuenta?{' '}
+            <button type="button" onClick={() => switchTo('login')} className="text-gold underline underline-offset-2">
+              Entrar
+            </button>
+            {backendConfigured && (
+              <>
+                {' · '}
+                <button type="button" onClick={() => switchTo('recuperar')} className="text-gold underline underline-offset-2">
+                  Olvidé mi contraseña
+                </button>
+              </>
+            )}
+          </p>
+        )}
+        {mode === 'recuperar' && (
+          <p className="mt-3 text-center text-[13px] text-ink-soft">
+            <button type="button" onClick={() => switchTo('login')} className="text-gold underline underline-offset-2">
+              ‹ Volver a entrar
+            </button>
+          </p>
+        )}
 
         <p className="mt-4 text-center text-[12px] leading-relaxed text-ink-faint">
           {backendConfigured
