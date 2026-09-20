@@ -25,6 +25,15 @@ import {
 } from '../lib/aportes';
 import { AporteForm } from '../components/Aportes';
 import { deleteAviso, listAllAvisos, saveAviso, type Aviso } from '../lib/avisos';
+import {
+  COMUNIDAD_AREAS,
+  deleteComunidad,
+  endsLabel,
+  fetchComunidad,
+  saveComunidad,
+  type KabalaComunidad,
+  type KabalaComunidadInput,
+} from '../lib/kabalaComunidad';
 import { Btn, Card, Field, inputCls } from '../components/ui';
 
 /* ───────────────────────────── Ayudas ───────────────────────────── */
@@ -71,6 +80,22 @@ function dayLabel(iso: string, now: number): string {
   if (diff === 1) return 'Ayer';
   return d.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
 }
+
+/** Formulario en blanco de una kabalá para todos: por defecto dura dos semanas. */
+const emptyKab = (): KabalaComunidadInput => ({
+  title: '',
+  he: '',
+  blurb: '',
+  kavana: '',
+  subject_label: '',
+  pasuk_he: '',
+  pasuk_es: '',
+  pasuk_ref: '',
+  kind: 'cuidar',
+  area: 'speech',
+  ends_on: new Date(Date.now() + 14 * 86_400_000).toISOString().slice(0, 10),
+  active: true,
+});
 
 const isOnline = (u: AdminUser, now: number) =>
   !!u.last_seen_at && now - new Date(u.last_seen_at).getTime() < ONLINE_MS;
@@ -188,7 +213,7 @@ const chip = (on: boolean) =>
 
 /* ───────────────────────────── Página ───────────────────────────── */
 
-type Tab = 'resumen' | 'personas' | 'aportes' | 'avisos' | 'actividad';
+type Tab = 'resumen' | 'personas' | 'aportes' | 'avisos' | 'kabalot' | 'actividad';
 type Filter = 'todas' | 'en_linea' | 'nuevas' | 'admins' | 'desactivadas';
 type Sort = 'recientes' | 'ultima' | 'nombre' | 'entradas';
 type EventFilter = 'todo' | 'actividad' | 'registros' | 'entradas' | 'aportes' | 'admin';
@@ -209,6 +234,8 @@ export default function Admin() {
   const [aportes, setAportes] = useState<AporteRow[] | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [avisos, setAvisos] = useState<Aviso[] | null>(null);
+  const [kabalotCom, setKabalotCom] = useState<KabalaComunidad[] | null>(null);
+  const [kabDraft, setKabDraft] = useState<KabalaComunidadInput>(emptyKab);
   const [avisoDraft, setAvisoDraft] = useState<{ id?: string; title: string; body: string }>({ title: '', body: '' });
   const [now, setNow] = useState(() => Date.now());
   const [error, setError] = useState('');
@@ -228,15 +255,17 @@ export default function Admin() {
         setUsers(d.users);
         setEvents(d.events);
         setAportes(demoAportes());
+        setKabalotCom([{ id: 'kc-1', title: 'No hablar lashón hará de la persona que más me cae mal', he: 'שְׁמִירַת הַלָּשׁוֹן', blurb: 'Hasta después de Sucot, sin lashón hará de esa persona.', kavana: '', subject_label: '', pasuk_he: '', pasuk_es: '', pasuk_ref: '', kind: 'cuidar', area: 'speech', ends_on: '2026-10-04', active: true, aceptaron: 42, acepte: false }]);
         setAvisos([{ id: 'av-1', title: 'Shabat Shalom', body: 'Que tengan un Shabat de mucha luz. Recuerden encender las velas a tiempo.', active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }]);
         setExtended(true);
       } else {
-        const [u, e, a, av] = await Promise.all([listUsers(), listEvents(), listAll(), listAllAvisos()]);
+        const [u, e, a, av, kc] = await Promise.all([listUsers(), listEvents(), listAll(), listAllAvisos(), fetchComunidad()]);
         setUsers(u.users);
         setExtended(u.extended);
         setEvents(e);
         setAportes(a);
         setAvisos(av);
+        setKabalotCom(kc);
       }
       setNow(Date.now());
     } catch (e) {
@@ -392,11 +421,13 @@ export default function Admin() {
         return `${actor} aprobó un aporte de ${name}`;
       case 'aporte_rechazado':
         return `${actor} rechazó un aporte de ${name}`;
+      case 'kabala_aceptada':
+        return `${name} aceptó la kabalá «${e.detail.kabala ?? ''}»`;
     }
   };
 
   const dotColor = (k: EventKind) =>
-    k === 'registro' || k === 'aporte_enviado' ? 'bg-gold' : k === 'entrada' || k === 'actividad' || k === 'aporte_aprobado' ? 'bg-[var(--success)]' : k === 'aporte_rechazado' ? 'bg-[var(--danger)]' : k === 'cuenta_borrada' || k === 'cuenta_desactivada' ? 'bg-[var(--danger)]' : 'bg-ink-faint';
+    k === 'registro' || k === 'aporte_enviado' ? 'bg-gold' : k === 'entrada' || k === 'actividad' || k === 'aporte_aprobado' || k === 'kabala_aceptada' ? 'bg-[var(--success)]' : k === 'aporte_rechazado' ? 'bg-[var(--danger)]' : k === 'cuenta_borrada' || k === 'cuenta_desactivada' ? 'bg-[var(--danger)]' : 'bg-ink-faint';
 
   const pending = (aportes ?? []).filter((a) => a.status === 'pendiente');
   const aporteAuthor = (a: AporteRow) => (a.author_id ? who(a.author_id) : a.author_name || 'Alguien');
@@ -406,6 +437,7 @@ export default function Admin() {
     ['personas', `Personas${users ? ` (${users.length})` : ''}`],
     ['aportes', `Aportes${pending.length ? ` (${pending.length})` : ''}`],
     ['avisos', 'Avisos'],
+    ['kabalot', 'Kabalot'],
     ['actividad', 'Actividad'],
   ];
 
@@ -436,7 +468,7 @@ export default function Admin() {
       )}
 
       {/* Pestañas grandes */}
-      <div className="grid grid-cols-2 gap-2 rounded-2xl border border-line bg-raised p-1.5 sm:grid-cols-5">
+      <div className="grid grid-cols-2 gap-2 rounded-2xl border border-line bg-raised p-1.5 sm:grid-cols-6">
         {TABS.map(([id, label]) => (
           <button
             key={id}
@@ -938,6 +970,135 @@ export default function Admin() {
                         disabled={busy}
                         onClick={() => {
                           if (confirm('¿Borrar este aviso para siempre?')) void run(() => deleteAviso(a.id), 'Aviso borrado.');
+                        }}
+                      >
+                        Borrar
+                      </Btn>
+                    </div>
+                  </Card>
+                ))}
+              </section>
+            </>
+          )}
+        </div>
+      )}
+
+      {users && tab === 'kabalot' && (
+        <div className="space-y-6">
+          {kabalotCom === null ? (
+            <Card className="border-[var(--danger)] p-4 text-[14px] leading-relaxed text-ink">
+              <strong>Falta activar las kabalot para todos.</strong> Pega <code className="text-gold">supabase/kabalot-comunidad.sql</code> en el
+              Editor SQL de Supabase y pulsa Run.
+            </Card>
+          ) : (
+            <>
+              <Card className="space-y-4 p-5">
+                <div>
+                  <h2 className="text-xl text-ink">{kabDraft.id ? 'Editar kabalá' : 'Nueva kabalá para todos'}</h2>
+                  <p className="mt-1 text-[13px] leading-relaxed text-ink-faint">
+                    Sale en «Hoy» para todas las personas. Quien toca «Acepto» se suma, todos ven cuántas la aceptaron, y cada día se le pregunta si
+                    hoy la cumplió (eso solo lo ve ella o él).
+                  </p>
+                </div>
+                <Field label="Título">
+                  <input className={inputCls + ' !py-3'} value={kabDraft.title} maxLength={140} onChange={(e) => setKabDraft({ ...kabDraft, title: e.target.value })} placeholder="Por ejemplo: No hablar lashón hará de la persona que más me cae mal" />
+                </Field>
+                <Field label="Título en hebreo (opcional)">
+                  <input className={inputCls + ' !py-3'} dir="rtl" value={kabDraft.he} maxLength={140} onChange={(e) => setKabDraft({ ...kabDraft, he: e.target.value })} />
+                </Field>
+                <Field label="Explicación" hint={`${kabDraft.blurb.length} / 800 letras`}>
+                  <textarea className={inputCls + ' min-h-[8rem]'} value={kabDraft.blurb} maxLength={800} onChange={(e) => setKabDraft({ ...kabDraft, blurb: e.target.value })} />
+                </Field>
+                <Field label="Kavaná (para qué se hace)">
+                  <input className={inputCls + ' !py-3'} value={kabDraft.kavana} maxLength={300} onChange={(e) => setKabDraft({ ...kabDraft, kavana: e.target.value })} />
+                </Field>
+                <Field label="Pregunta opcional al aceptar (solo la persona la ve)" hint="Si la dejas vacía, no se pregunta nada. Lo que responda se queda en su dispositivo.">
+                  <input className={inputCls + ' !py-3'} value={kabDraft.subject_label} maxLength={160} onChange={(e) => setKabDraft({ ...kabDraft, subject_label: e.target.value })} placeholder="Por ejemplo: ¿Quién es? (opcional)" />
+                </Field>
+                <Field label="Pasuk de inspiración (hebreo)">
+                  <textarea className={inputCls + ' min-h-[4rem]'} dir="rtl" value={kabDraft.pasuk_he} maxLength={400} onChange={(e) => setKabDraft({ ...kabDraft, pasuk_he: e.target.value })} />
+                </Field>
+                <Field label="Pasuk en español">
+                  <textarea className={inputCls + ' min-h-[4rem]'} value={kabDraft.pasuk_es} maxLength={400} onChange={(e) => setKabDraft({ ...kabDraft, pasuk_es: e.target.value })} />
+                </Field>
+                <Field label="Fuente del pasuk">
+                  <input className={inputCls + ' !py-3'} value={kabDraft.pasuk_ref} maxLength={80} onChange={(e) => setKabDraft({ ...kabDraft, pasuk_ref: e.target.value })} placeholder="Por ejemplo: Tehilim 34:14-15" />
+                </Field>
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <Field label="Es de">
+                    <select className={inputCls + ' !py-3'} value={kabDraft.kind} onChange={(e) => setKabDraft({ ...kabDraft, kind: e.target.value as 'cuidar' | 'hacer' })}>
+                      <option value="cuidar">Cuidar algo (no hacerlo)</option>
+                      <option value="hacer">Hacer algo cada día</option>
+                    </select>
+                  </Field>
+                  <Field label="Área">
+                    <select className={inputCls + ' !py-3'} value={kabDraft.area} onChange={(e) => setKabDraft({ ...kabDraft, area: e.target.value })}>
+                      {COMUNIDAD_AREAS.map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.es}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                  <Field label="Dura hasta (incluido)">
+                    <input type="date" className={inputCls + ' !py-3'} value={kabDraft.ends_on} onChange={(e) => setKabDraft({ ...kabDraft, ends_on: e.target.value })} />
+                  </Field>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Btn
+                    disabled={busy || kabDraft.title.trim().length < 3 || !kabDraft.ends_on}
+                    onClick={() =>
+                      run(async () => {
+                        await saveComunidad({ ...kabDraft, id: kabDraft.id, active: kabDraft.active });
+                        setKabDraft(emptyKab());
+                      }, kabDraft.id ? 'Kabalá actualizada.' : 'Kabalá publicada: ya la ven todos.')
+                    }
+                  >
+                    {kabDraft.id ? 'Guardar cambios' : 'Publicar kabalá'}
+                  </Btn>
+                  {kabDraft.id && (
+                    <Btn variant="quiet" onClick={() => setKabDraft(emptyKab())}>
+                      Cancelar
+                    </Btn>
+                  )}
+                </div>
+              </Card>
+
+              <section className="space-y-3">
+                <h2 className="text-xl text-ink">Kabalot ({kabalotCom.length})</h2>
+                {kabalotCom.length === 0 && <Card className="p-5 text-[15px] text-ink-faint">Todavía no hay kabalot para todos.</Card>}
+                {kabalotCom.map((k) => (
+                  <Card key={k.id} className={`space-y-3 p-5 ${k.active ? 'border-gold' : 'opacity-70'}`}>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {k.active ? <Badge tone="green">Visible para todos</Badge> : <Badge tone="muted">Oculta</Badge>}
+                      <Badge tone="gold">{plural(k.aceptaron, 'aceptó', 'aceptaron')}</Badge>
+                      <span className="text-[13px] text-ink-faint">hasta el {endsLabel(k.ends_on)}</span>
+                    </div>
+                    <h3 className="text-[18px] text-ink">{k.title}</h3>
+                    {k.blurb && <p className="line-clamp-3 whitespace-pre-line text-[14px] leading-relaxed text-ink-soft">{k.blurb}</p>}
+                    <div className="flex flex-wrap gap-2 border-t border-line pt-3">
+                      <Btn
+                        variant="ghost"
+                        disabled={busy}
+                        onClick={() => {
+                          setKabDraft({ ...k });
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                      >
+                        Editar
+                      </Btn>
+                      <Btn
+                        variant="ghost"
+                        disabled={busy}
+                        onClick={() => run(() => saveComunidad({ ...k, active: !k.active }), k.active ? 'Kabalá oculta.' : 'Kabalá visible otra vez.')}
+                      >
+                        {k.active ? 'Ocultar' : 'Mostrar'}
+                      </Btn>
+                      <Btn
+                        variant="danger"
+                        disabled={busy}
+                        onClick={() => {
+                          if (confirm('¿Borrar esta kabalá? También se borra la cuenta de quiénes la aceptaron.')) void run(() => deleteComunidad(k.id), 'Kabalá borrada.');
                         }}
                       >
                         Borrar

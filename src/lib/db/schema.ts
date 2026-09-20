@@ -206,6 +206,7 @@ export interface Kabala {
   kavana: string; // para qué la hace (texto libre, opcional)
   kind?: KabalaKind; // ausente = 'cuidar' (kabalot antiguas)
   presetId?: string; // si nació de una sugerencia
+  comunidadId?: string; // si nació de una kabalá para todo el público (la crea un admin)
   area: AreaId; // área con la que se relaciona
   targetDays: number; // cuántos días dura (elige la persona)
   // acumulativo: cuenta días limpios en total; una caída pausa, no borra.

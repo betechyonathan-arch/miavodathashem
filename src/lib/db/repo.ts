@@ -470,6 +470,7 @@ export async function createKabala(
     kavana: input.kavana,
     kind: input.kind ?? 'cuidar',
     ...(input.presetId ? { presetId: input.presetId } : {}),
+    ...(input.comunidadId ? { comunidadId: input.comunidadId } : {}),
     area: input.area,
     targetDays,
     mode: input.mode,

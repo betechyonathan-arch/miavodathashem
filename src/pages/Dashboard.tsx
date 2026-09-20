@@ -21,6 +21,7 @@ import MussarLine from '../components/MussarLine';
 import QuickRegister from '../components/QuickRegister';
 import MitzvotToday from '../components/MitzvotToday';
 import Avisos from '../components/Avisos';
+import KabalotComunidad from '../components/KabalotComunidad';
 import YahrzeitToday from '../components/YahrzeitToday';
 import type { AreaId, DayRecord, Entry, Goal } from '../lib/db/schema';
 import EntryList from '../components/EntryList';
@@ -98,6 +99,9 @@ export default function Dashboard() {
     <div className="space-y-5">
       {/* Avisos del admin: hasta arriba */}
       <Avisos />
+
+      {/* Kabalot para todo el público: aceptar, ver cuántos las tomaron y la pregunta de cada día */}
+      <KabalotComunidad />
 
       {/* Mis kabalot: las que la persona creó, o una invitación a empezar la primera */}
       <KabalotCard />

@@ -34,7 +34,8 @@ export type EventKind =
   | 'actividad'
   | 'aporte_enviado'
   | 'aporte_aprobado'
-  | 'aporte_rechazado';
+  | 'aporte_rechazado'
+  | 'kabala_aceptada';
 
 export interface AdminEvent {
   id: number;
@@ -52,6 +53,8 @@ export interface AdminEvent {
     /** aportes: dvar | musar | pirush, y si lo mandó un admin (se publica directo). */
     tipo?: string;
     directo?: boolean;
+    /** kabala_aceptada: el título de la kabalá para todos que aceptó. */
+    kabala?: string;
   };
 }
 
