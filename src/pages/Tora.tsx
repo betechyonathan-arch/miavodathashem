@@ -11,6 +11,8 @@ import {
 import { Btn, Card, SectionTitle, inputCls } from '../components/ui';
 import SefariaReader from '../components/SefariaReader';
 import Musar from './Musar';
+import { Comunidad, PublishCta } from '../components/Aportes';
+import { backendConfigured } from '../lib/supabase';
 
 /** Lo que Sefaria llama "hoy", en el orden en que interesa y con nombre en español. */
 const TODAY: { match: string; es: string }[] = [
@@ -253,23 +255,34 @@ function Estudio() {
 }
 
 /**
- * Torá: estudio con la biblioteca de Sefaria, y Musar como segunda pestaña
- * (las frases y el seder de musar de siempre).
+ * Torá: estudio con la biblioteca de Sefaria, Musar (las frases y el seder de siempre) y
+ * Comunidad (dvarim, pirushim y musar que proponen las personas y aprueba un admin).
+ * Arriba, siempre a la vista, el botón para publicar uno.
  */
 export default function Tora() {
   const [params, setParams] = useSearchParams();
-  const tab = params.get('t') === 'musar' ? 'musar' : 'estudio';
+  const t = params.get('t');
+  const tab = t === 'musar' ? 'musar' : t === 'comunidad' && backendConfigured ? 'comunidad' : 'estudio';
+  const [refreshKey, setRefreshKey] = useState(0);
+  const tabs: (readonly [string, string])[] = [
+    ['estudio', 'Estudio'],
+    ['musar', 'Musar'],
+    ...(backendConfigured ? [['comunidad', 'Comunidad'] as const] : []),
+  ];
 
   return (
     <div className="space-y-4">
       <SectionTitle es="Torá" he="תורה" />
-      <div className="grid grid-cols-2 rounded-xl border border-line bg-raised p-1 text-[14px]">
-        {(
-          [
-            ['estudio', 'Estudio'],
-            ['musar', 'Musar'],
-          ] as const
-        ).map(([id, label]) => (
+      {backendConfigured && (
+        <PublishCta
+          onSent={() => {
+            setRefreshKey((k) => k + 1);
+            setParams({ t: 'comunidad' });
+          }}
+        />
+      )}
+      <div className={`grid ${tabs.length === 3 ? 'grid-cols-3' : 'grid-cols-2'} rounded-xl border border-line bg-raised p-1 text-[14px]`}>
+        {tabs.map(([id, label]) => (
           <button
             key={id}
             onClick={() => setParams({ t: id })}
@@ -279,7 +292,7 @@ export default function Tora() {
           </button>
         ))}
       </div>
-      {tab === 'estudio' ? <Estudio /> : <Musar />}
+      {tab === 'estudio' ? <Estudio /> : tab === 'musar' ? <Musar /> : <Comunidad refreshKey={refreshKey} />}
     </div>
   );
 }

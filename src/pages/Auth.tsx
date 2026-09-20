@@ -118,7 +118,7 @@ export default function Auth() {
           </p>
           <p className="mt-2 text-[11.5px] leading-relaxed text-ink-soft">
             {backendConfigured
-              ? 'Al servidor solo van tu nombre, tu correo, tu género y cuándo entras a la app (para saber cuánta gente la usa). Nunca lo que registras.'
+              ? 'Al servidor solo van tu nombre, tu correo, tu género, cuándo entras a la app y que registraste algo (para saber cuánta gente la usa). Nunca lo que registras.'
               : 'Modo de prueba: nada sale de este dispositivo.'}{' '}
             La IA es opcional y viene apagada; solo si tú la activas, el texto que elijas analizar se envía a Anthropic.
           </p>

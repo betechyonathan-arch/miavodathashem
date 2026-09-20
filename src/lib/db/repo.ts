@@ -3,6 +3,7 @@
   Si mañana se añade un backend con RLS + API para Capi, solo cambia este archivo.
 */
 import { db } from './db';
+import { reportActivity } from '../activity';
 import { defaultWatchedFalls } from '../watchedFalls';
 import {
   curatedZoneLocation,
@@ -265,6 +266,7 @@ export async function addEntry(input: NewEntry): Promise<Entry> {
     valence: entry.valence,
     source: entry.source,
   });
+  if ((input.actor ?? 'user') === 'user') reportActivity(); // solo "registró algo", nunca qué
   return entry;
 }
 

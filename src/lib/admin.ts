@@ -3,8 +3,8 @@
   valida la base de datos (supabase/schema.sql y admin-auditoria.sql). Si quien llama no es
   admin, el servidor la rechaza aunque alguien fuerce la pantalla desde el navegador.
 
-  El panel muestra QUIÉN es cada persona y CUÁNDO entra. Nunca lo que registra: eso vive solo
-  en su dispositivo y no existe en el servidor.
+  El panel muestra QUIÉN es cada persona, CUÁNDO entra y que registró ALGO. Nunca qué registró:
+  eso vive solo en su dispositivo y no existe en el servidor.
 */
 import { supabase } from './supabase';
 
@@ -30,7 +30,11 @@ export type EventKind =
   | 'admin_quitado'
   | 'cuenta_desactivada'
   | 'cuenta_activada'
-  | 'cuenta_borrada';
+  | 'cuenta_borrada'
+  | 'actividad'
+  | 'aporte_enviado'
+  | 'aporte_aprobado'
+  | 'aporte_rechazado';
 
 export interface AdminEvent {
   id: number;
@@ -38,7 +42,17 @@ export interface AdminEvent {
   kind: EventKind;
   user_id: string | null;
   actor_id: string | null;
-  detail: { nombre?: string; correo?: string; genero?: string | null; invitado_por?: string | null };
+  detail: {
+    nombre?: string;
+    correo?: string;
+    genero?: string | null;
+    invitado_por?: string | null;
+    /** actividad: cuántas veces registró algo seguidas (nunca qué). */
+    veces?: number;
+    /** aportes: dvar | musar | pirush, y si lo mandó un admin (se publica directo). */
+    tipo?: string;
+    directo?: boolean;
+  };
 }
 
 export class AdminError extends Error {}

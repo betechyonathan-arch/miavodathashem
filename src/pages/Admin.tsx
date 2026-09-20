@@ -14,6 +14,16 @@ import {
   type AdminUser,
   type EventKind,
 } from '../lib/admin';
+import {
+  featureAporte,
+  KIND_LABEL,
+  listAll,
+  reviewAporte,
+  deleteAporte,
+  SPLASH_MAX,
+  type AporteRow,
+} from '../lib/aportes';
+import { AporteForm } from '../components/Aportes';
 import { Btn, Card, Field, inputCls } from '../components/ui';
 
 /* ───────────────────────────── Ayudas ───────────────────────────── */
@@ -68,6 +78,30 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
 
 /* ───────────────────────────── Datos de muestra (solo desarrollo) ───────────────────────────── */
 
+function demoAportes(): AporteRow[] {
+  const now = Date.now();
+  const mk = (i: number, o: Partial<AporteRow>): AporteRow => ({
+    id: `ap-${i}`,
+    kind: 'dvar',
+    title: '',
+    body: '',
+    source: '',
+    author_id: 'demo-2',
+    author_name: 'Sara Levy',
+    anonymous: false,
+    status: 'pendiente',
+    featured: false,
+    created_at: new Date(now - i * 3_600_000).toISOString(),
+    reviewed_at: null,
+    ...o,
+  });
+  return [
+    mk(1, { title: 'Ser agradecido', body: 'Modé ani cada mañana nos enseña que empezamos el día dando gracias, antes de pedir nada.', source: 'Siddur' }),
+    mk(2, { kind: 'musar', author_id: 'demo-3', author_name: 'David Mizrahi', anonymous: true, body: 'El tiempo que no se usa para servir a Hashem no vuelve. Cada minuto cuenta.' }),
+    mk(3, { kind: 'pirush', status: 'aprobado', featured: true, title: 'Bereshit 1:1', body: 'Rashi pregunta por qué la Torá empieza con la creación y no con las mitzvot.', source: 'Rashi', reviewed_at: new Date(now).toISOString() }),
+  ];
+}
+
 function demoData(): { users: AdminUser[]; events: AdminEvent[] } {
   const now = Date.now();
   const min = 60_000;
@@ -100,6 +134,7 @@ function demoData(): { users: AdminUser[]; events: AdminEvent[] } {
     return { id: i, at: new Date(at).toISOString(), kind, user_id: user, actor_id: actor ?? null, detail: { nombre: u?.full_name, correo: u?.email } };
   };
   const events = [
+    ev(10, now - 30_000, 'actividad', 'demo-2'),
     ev(1, now - 1 * min, 'entrada', 'demo-1'),
     ev(2, now - 2 * min, 'entrada', 'demo-2'),
     ev(3, now - 3 * min, 'entrada', 'demo-4'),
@@ -152,10 +187,10 @@ const chip = (on: boolean) =>
 
 /* ───────────────────────────── Página ───────────────────────────── */
 
-type Tab = 'resumen' | 'personas' | 'actividad';
+type Tab = 'resumen' | 'personas' | 'aportes' | 'actividad';
 type Filter = 'todas' | 'en_linea' | 'nuevas' | 'admins' | 'desactivadas';
 type Sort = 'recientes' | 'ultima' | 'nombre' | 'entradas';
-type EventFilter = 'todo' | 'registros' | 'entradas' | 'admin';
+type EventFilter = 'todo' | 'actividad' | 'registros' | 'entradas' | 'aportes' | 'admin';
 
 /**
  * Panel de administración: quién tiene cuenta, quién está en línea, quién se registró y cuándo
@@ -168,6 +203,8 @@ export default function Admin() {
   const [users, setUsers] = useState<AdminUser[] | null>(null);
   const [extended, setExtended] = useState(true);
   const [events, setEvents] = useState<AdminEvent[] | null>(null);
+  const [aportes, setAportes] = useState<AporteRow[] | null>(null);
+  const [showForm, setShowForm] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const [error, setError] = useState('');
   const [msg, setMsg] = useState('');
@@ -185,12 +222,14 @@ export default function Admin() {
         const d = demoData();
         setUsers(d.users);
         setEvents(d.events);
+        setAportes(demoAportes());
         setExtended(true);
       } else {
-        const [u, e] = await Promise.all([listUsers(), listEvents()]);
+        const [u, e, a] = await Promise.all([listUsers(), listEvents(), listAll()]);
         setUsers(u.users);
         setExtended(u.extended);
         setEvents(e);
+        setAportes(a);
       }
       setNow(Date.now());
     } catch (e) {
@@ -270,6 +309,8 @@ export default function Admin() {
   const eventsShown = useMemo(() => {
     const list = events ?? [];
     const admin: EventKind[] = ['admin_otorgado', 'admin_quitado', 'cuenta_desactivada', 'cuenta_activada', 'cuenta_borrada'];
+    if (evFilter === 'actividad') return list.filter((e) => e.kind === 'actividad');
+    if (evFilter === 'aportes') return list.filter((e) => e.kind.startsWith('aporte_'));
     if (evFilter === 'registros') return list.filter((e) => e.kind === 'registro');
     if (evFilter === 'entradas') return list.filter((e) => e.kind === 'entrada');
     if (evFilter === 'admin') return list.filter((e) => admin.includes(e.kind));
@@ -334,15 +375,29 @@ export default function Admin() {
         return `${actor} volvió a activar la cuenta de ${name}`;
       case 'cuenta_borrada':
         return `${actor} borró la cuenta de ${name}`;
+      case 'actividad':
+        return e.detail.veces && e.detail.veces > 1 ? `${name} registró · ${e.detail.veces} veces` : `${name} registró`;
+      case 'aporte_enviado':
+        return e.detail.directo
+          ? `${name} publicó un aporte (${e.detail.tipo ?? 'dvar'})`
+          : `${name} mandó un aporte (${e.detail.tipo ?? 'dvar'}) a revisión`;
+      case 'aporte_aprobado':
+        return `${actor} aprobó un aporte de ${name}`;
+      case 'aporte_rechazado':
+        return `${actor} rechazó un aporte de ${name}`;
     }
   };
 
   const dotColor = (k: EventKind) =>
-    k === 'registro' ? 'bg-gold' : k === 'entrada' ? 'bg-[var(--success)]' : k === 'cuenta_borrada' || k === 'cuenta_desactivada' ? 'bg-[var(--danger)]' : 'bg-ink-faint';
+    k === 'registro' || k === 'aporte_enviado' ? 'bg-gold' : k === 'entrada' || k === 'actividad' || k === 'aporte_aprobado' ? 'bg-[var(--success)]' : k === 'aporte_rechazado' ? 'bg-[var(--danger)]' : k === 'cuenta_borrada' || k === 'cuenta_desactivada' ? 'bg-[var(--danger)]' : 'bg-ink-faint';
+
+  const pending = (aportes ?? []).filter((a) => a.status === 'pendiente');
+  const aporteAuthor = (a: AporteRow) => (a.author_id ? who(a.author_id) : a.author_name || 'Alguien');
 
   const TABS: [Tab, string][] = [
     ['resumen', 'Resumen'],
     ['personas', `Personas${users ? ` (${users.length})` : ''}`],
+    ['aportes', `Aportes${pending.length ? ` (${pending.length})` : ''}`],
     ['actividad', 'Actividad'],
   ];
 
@@ -355,7 +410,7 @@ export default function Admin() {
           <h1 className="text-3xl text-ink">Panel de administración</h1>
           <p className="mt-1 max-w-xl text-[14px] leading-relaxed text-ink-soft">
             Ves quién tiene cuenta, quién está en línea y cuándo entra cada persona.{' '}
-            <span className="text-ink">Nunca ves lo que registran</span> (caídas, logros, kabalot): eso solo vive en su dispositivo.
+            Ves que alguien <span className="text-ink">registró algo</span>, pero nunca qué (caídas, logros, kabalot): eso solo vive en su dispositivo.
           </p>
         </div>
         <div className="text-right text-[13px] text-ink-faint">
@@ -373,7 +428,7 @@ export default function Admin() {
       )}
 
       {/* Pestañas grandes */}
-      <div className="grid grid-cols-3 gap-2 rounded-2xl border border-line bg-raised p-1.5">
+      <div className="grid grid-cols-2 gap-2 rounded-2xl border border-line bg-raised p-1.5 sm:grid-cols-4">
         {TABS.map(([id, label]) => (
           <button
             key={id}
@@ -397,6 +452,12 @@ export default function Admin() {
 
       {users && tab === 'resumen' && (
         <div className="space-y-6">
+          {pending.length > 0 && (
+            <button onClick={() => setTab('aportes')} className="block w-full rounded-2xl border-2 border-gold bg-[color-mix(in_srgb,var(--gold)_12%,transparent)] px-5 py-4 text-start">
+              <span className="block text-[17px] font-medium text-ink">{plural(pending.length, 'aporte espera', 'aportes esperan')} tu aprobación</span>
+              <span className="block text-[13px] text-ink-soft">Toca para revisarlos y publicarlos.</span>
+            </button>
+          )}
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <Stat label="En línea ahora" value={stats.online.length} live hint="con la app abierta" />
             <Stat label="Entraron hoy" value={stats.enteredToday} />
@@ -632,14 +693,160 @@ export default function Admin() {
         </div>
       )}
 
+      {users && tab === 'aportes' && (
+        <div className="space-y-6">
+          {aportes === null ? (
+            <Card className="border-[var(--danger)] p-4 text-[14px] leading-relaxed text-ink">
+              <strong>Falta activar los aportes.</strong> Pega <code className="text-gold">supabase/aportes.sql</code> en el Editor SQL de
+              Supabase y pulsa Run.
+            </Card>
+          ) : (
+            <>
+              <div>
+                {showForm ? (
+                  <AporteForm onSent={() => void load()} onCancel={() => setShowForm(false)} />
+                ) : (
+                  <Btn onClick={() => setShowForm(true)}>Publicar algo yo (sale directo, sin revisión)</Btn>
+                )}
+              </div>
+
+              <section className="space-y-3">
+                <h2 className="text-xl text-ink">Por aprobar ({pending.length})</h2>
+                {pending.length === 0 && <Card className="p-5 text-[15px] text-ink-faint">No hay nada esperando tu revisión.</Card>}
+                {pending.map((a) => (
+                  <Card key={a.id} className="space-y-3 p-5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge tone="gold">{KIND_LABEL[a.kind]}</Badge>
+                      <span className="text-[13px] text-ink-faint">{ago(a.created_at, now)}</span>
+                    </div>
+                    {a.title && <h3 className="text-[18px] text-ink">{a.title}</h3>}
+                    <p className="whitespace-pre-line text-[15px] leading-relaxed text-ink">{a.body}</p>
+                    {a.source && <p className="text-[13px] text-ink-faint">Fuente: {a.source}</p>}
+                    <p className="text-[13px] text-ink-soft">
+                      Lo mandó <strong className="text-ink">{aporteAuthor(a)}</strong> · se publicará{' '}
+                      {a.anonymous ? <strong className="text-ink">como anónimo</strong> : 'con su nombre'}
+                    </p>
+                    <div className="flex flex-wrap gap-2 border-t border-line pt-3">
+                      <Btn disabled={busy} onClick={() => run(() => reviewAporte(a.id, true), 'Aprobado: ya lo ven todos.')}>
+                        Aprobar y publicar
+                      </Btn>
+                      <Btn
+                        variant="ghost"
+                        disabled={busy || a.body.length > SPLASH_MAX}
+                        onClick={() =>
+                          run(async () => {
+                            await reviewAporte(a.id, true);
+                            await featureAporte(a.id, true);
+                          }, 'Aprobado y puesto en la pantalla de entrada.')
+                        }
+                      >
+                        Aprobar y poner en la pantalla de entrada
+                      </Btn>
+                      <Btn variant="danger" disabled={busy} onClick={() => run(() => reviewAporte(a.id, false), 'Rechazado.')}>
+                        Rechazar
+                      </Btn>
+                    </div>
+                    {a.body.length > SPLASH_MAX && (
+                      <p className="text-[12px] text-ink-faint">
+                        Es largo para la pantalla de entrada (máx. {SPLASH_MAX} letras); solo puede publicarse en Torá.
+                      </p>
+                    )}
+                  </Card>
+                ))}
+              </section>
+
+              <section className="space-y-3">
+                <h2 className="text-xl text-ink">Publicados ({aportes.filter((a) => a.status === 'aprobado').length})</h2>
+                <p className="text-[13px] leading-relaxed text-ink-faint">
+                  Todos los ven en Torá → Comunidad. Puedes poner uno en la pantalla que sale al entrar a la app, en lugar de «Servir a Hashem
+                  en todos tus caminos». Solo hay uno a la vez.
+                </p>
+                {aportes.filter((a) => a.status === 'aprobado').length === 0 && (
+                  <Card className="p-5 text-[15px] text-ink-faint">Todavía no hay aportes publicados.</Card>
+                )}
+                {aportes
+                  .filter((a) => a.status === 'aprobado')
+                  .map((a) => (
+                    <Card key={a.id} className={`space-y-3 p-5 ${a.featured ? 'border-gold' : ''}`}>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge tone="gold">{KIND_LABEL[a.kind]}</Badge>
+                        {a.featured && <Badge tone="green">En la pantalla de entrada</Badge>}
+                        {a.anonymous && <Badge tone="muted">Anónimo</Badge>}
+                        <span className="text-[13px] text-ink-faint">
+                          {aporteAuthor(a)} · {dateTime(a.created_at)}
+                        </span>
+                      </div>
+                      {a.title && <h3 className="text-[18px] text-ink">{a.title}</h3>}
+                      <p className="whitespace-pre-line text-[15px] leading-relaxed text-ink">{a.body}</p>
+                      <div className="flex flex-wrap gap-2 border-t border-line pt-3">
+                        {a.featured ? (
+                          <Btn variant="ghost" disabled={busy} onClick={() => run(() => featureAporte(a.id, false), 'Quitado: vuelve el lema de siempre.')}>
+                            Quitar de la pantalla de entrada
+                          </Btn>
+                        ) : (
+                          <Btn
+                            variant="ghost"
+                            disabled={busy || a.body.length > SPLASH_MAX}
+                            onClick={() => run(() => featureAporte(a.id, true), 'Puesto en la pantalla de entrada.')}
+                          >
+                            Poner en la pantalla de entrada
+                          </Btn>
+                        )}
+                        <Btn
+                          variant="danger"
+                          disabled={busy}
+                          onClick={() => {
+                            if (confirm('¿Borrar este aporte? Deja de verse para todos.')) void run(() => deleteAporte(a.id), 'Borrado.');
+                          }}
+                        >
+                          Borrar
+                        </Btn>
+                      </div>
+                      {a.body.length > SPLASH_MAX && !a.featured && (
+                        <p className="text-[12px] text-ink-faint">Es largo para la pantalla de entrada (máx. {SPLASH_MAX} letras).</p>
+                      )}
+                    </Card>
+                  ))}
+              </section>
+
+              {aportes.some((a) => a.status === 'rechazado') && (
+                <section className="space-y-3">
+                  <h2 className="text-xl text-ink">Rechazados</h2>
+                  {aportes
+                    .filter((a) => a.status === 'rechazado')
+                    .map((a) => (
+                      <Card key={a.id} className="space-y-2 p-4 opacity-80">
+                        <div className="text-[13px] text-ink-faint">
+                          {KIND_LABEL[a.kind]} · {aporteAuthor(a)} · {ago(a.created_at, now)}
+                        </div>
+                        <p className="line-clamp-3 whitespace-pre-line text-[14px] text-ink-soft">{a.body}</p>
+                        <div className="flex gap-2">
+                          <Btn variant="ghost" disabled={busy} onClick={() => run(() => reviewAporte(a.id, true), 'Aprobado: ya lo ven todos.')}>
+                            Aprobar
+                          </Btn>
+                          <Btn variant="danger" disabled={busy} onClick={() => run(() => deleteAporte(a.id), 'Borrado.')}>
+                            Borrar
+                          </Btn>
+                        </div>
+                      </Card>
+                    ))}
+                </section>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
       {users && tab === 'actividad' && (
         <div className="space-y-4">
           <div className="flex flex-wrap gap-2">
             {(
               [
                 ['todo', 'Todo'],
-                ['registros', 'Registros'],
+                ['actividad', 'Registraron algo'],
                 ['entradas', 'Entradas'],
+                ['registros', 'Cuentas nuevas'],
+                ['aportes', 'Aportes'],
                 ['admin', 'Acciones de admin'],
               ] as [EventFilter, string][]
             ).map(([id, label]) => (

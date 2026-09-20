@@ -67,7 +67,7 @@ const GROUPS: Group[] = [
       { he: 'התקנה', es: 'Instalar la app', desc: 'Ábrela como una app en tu teléfono y protege mejor tus datos. Android, iPhone y computadora.', to: '/ajustes#instalar' },
       { he: 'בינה', es: 'Módulo de IA', desc: 'Opcional, invisible: clasifica y resume. Sin chatbot.', to: '/ajustes#ia' },
       { he: 'גיבוי בענן', es: 'Copia en la nube', desc: 'Respaldo y puente entre tus dispositivos.', to: '/ajustes#nube' },
-      ...(getSession()?.isAdmin ? [{ he: 'ניהול', es: 'Administración', desc: 'Cuentas de la app: quién es admin, activar, desactivar y borrar. Nunca muestra registros personales.', to: '/admin' }] : []),
+      ...(getSession()?.isAdmin ? [{ he: 'ניהול', es: 'Administración', desc: 'Cuentas, actividad y aportes por aprobar. Nunca muestra lo que cada persona registra.', to: '/admin' }] : []),
       { he: 'הנתונים שלך', es: 'Exportar, importar, borrar', desc: 'Tus datos son tuyos. Expórtalos seguido.', to: '/ajustes#datos' },
     ],
   },
