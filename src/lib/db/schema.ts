@@ -183,21 +183,31 @@ export interface YehudiKabala {
 }
 
 /**
- * Kabalá con fecha — un compromiso acotado en el tiempo (p. ej. "40 días de
- * kedushá / shemirat habrit, para que por ese zejut Hashem conceda el zivug
- * hagun"). Distinta de `YehudiKabala` (kabalot de crecimiento del círculo, sin
- * fecha de término). Se toma **bli neder**. §60: una caída se responde con el
- * regreso — nunca es un veredicto ni implica que Hashem retiene la yeshuá.
+ * Kabalá con fecha — un compromiso acotado en el tiempo que cada persona crea a su
+ * medida (p. ej. "cuidar la vista 40 días" o "un Tehilim diario por alguien"). Distinta
+ * de `YehudiKabala` (kabalot de crecimiento del círculo, sin fecha de término). Se toma
+ * **bli neder**. §60: una caída se responde con el regreso — nunca es un veredicto.
  */
 export type KabalaDayStatus = 'limpio' | 'caida';
 
+/**
+ * Qué tipo de compromiso es:
+ *  - 'cuidar': cuidarse de algo (la vista, el habla…). Una caída se registra como tal.
+ *  - 'hacer': hacer algo cada día (un Tehilim, un acto de jésed…). Un día que no se pudo
+ *    no es una "caída": solo queda sin cumplir.
+ * Las kabalot antiguas no traen `kind` y se tratan como 'cuidar'.
+ */
+export type KabalaKind = 'cuidar' | 'hacer';
+
 export interface Kabala {
   id: string;
-  he: string; // "מ׳ יום של קדושה"
-  es: string; // "40 días de kedushá"
-  kavana: string; // p. ej. "לזכות למצוא במהרה את זיווגי ההגון" (texto libre)
-  area: AreaId; // normalmente 'kedushah'
-  targetDays: number; // 40
+  he: string; // título en hebreo (opcional, puede ir vacío)
+  es: string; // título que la persona ve: "Cuidar la vista"
+  kavana: string; // para qué la hace (texto libre, opcional)
+  kind?: KabalaKind; // ausente = 'cuidar' (kabalot antiguas)
+  presetId?: string; // si nació de una sugerencia
+  area: AreaId; // área con la que se relaciona
+  targetDays: number; // cuántos días dura (elige la persona)
   // acumulativo: cuenta días limpios en total; una caída pausa, no borra.
   // racha: días seguidos; `onFall` decide si una caída la reinicia o la continúa.
   mode: 'acumulativo' | 'racha';
@@ -333,6 +343,8 @@ export interface Settings {
     lastGeneratedYearKey: string | null;
     boletas: PeriodBoleta[];
   };
+  /** Cuándo terminó la bienvenida de una cuenta nueva. null = aún no la ha visto. */
+  welcomeDoneAt?: string | null;
   aiEnabled: boolean; // módulo IA opcional, off por defecto
   aiProvider: 'anthropic';
   aiModel: string; // p. ej. claude-opus-5 / claude-sonnet-5 / claude-haiku-4-5

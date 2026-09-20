@@ -16,6 +16,9 @@ hebreo como lengua principal de los textos.
   (`@hebcal/core`).
 - **Contenido según género:** mitzvot, caídas que se vigilan y preguntas distintas para
   hombres y mujeres, según la halajá general (`src/lib/gender.ts`).
+- **Kabalot a tu medida:** compromisos con fecha que cada persona crea — cuidar algo o hacer algo cada día, con
+  los días que quiera y varias a la vez. Con sugerencias según el género (por ejemplo, cuidar la vista, o un Tehilim
+  diario por alguien), y una bienvenida para las cuentas nuevas.
 - **Check-in y jeshbón hanéfesh** que solo preguntan lo que falta, boletas semanales,
   mensuales y anuales, metas por niveles y el círculo "ser Yehudí".
 - **Torá:** estudio con la biblioteca abierta de [Sefaria](https://www.sefaria.org)

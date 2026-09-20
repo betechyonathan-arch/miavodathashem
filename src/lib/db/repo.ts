@@ -104,6 +104,7 @@ export const DEFAULT_SETTINGS: Settings = {
     lastGeneratedYearKey: null,
     boletas: [],
   },
+  welcomeDoneAt: null,
   aiEnabled: false,
   aiProvider: 'anthropic',
   aiModel: 'claude-opus-5',
@@ -440,6 +441,11 @@ export async function listKabalot(): Promise<Kabala[]> {
   return all.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
+export async function listActiveKabalot(): Promise<Kabala[]> {
+  const all = await db.kabalot.where('status').equals('activa').toArray();
+  return all.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
 export async function getActiveKabala(): Promise<Kabala | undefined> {
   const all = await db.kabalot.where('status').equals('activa').toArray();
   return all.sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
@@ -447,35 +453,29 @@ export async function getActiveKabala(): Promise<Kabala | undefined> {
 
 export async function createKabala(
   input: Omit<Kabala, 'id' | 'status' | 'days' | 'milestonesSeen' | 'createdAt'> & {
-    seedStartDay?: KabalaDayStatus; // marca el día 1 al crear (por defecto 'limpio')
+    seedStartDay?: KabalaDayStatus | null; // marca el día 1 al crear; null = no marcar nada
   },
 ): Promise<Kabala> {
   // Solo una kabalá activa a la vez: si hay otra, se cierra como completada/abandonada
   // según haya llegado o no a la meta (no se borra: el pasado se conserva).
-  const prevActive = await db.kabalot.where('status').equals('activa').toArray();
-  for (const p of prevActive) {
-    const reached = Object.values(p.days).filter((d) => d.status === 'limpio').length >= p.targetDays;
-    await db.kabalot.put({
-      ...p,
-      status: reached ? 'completada' : 'abandonada',
-      completedAt: reached ? nowIso() : p.completedAt ?? null,
-      abandonedAt: reached ? p.abandonedAt ?? null : nowIso(),
-    });
-  }
-  const seed = input.seedStartDay ?? 'limpio';
+  // Se pueden llevar varias kabalot a la vez: crear una nueva NO cierra las demás.
+  const seed = input.seedStartDay === undefined ? 'limpio' : input.seedStartDay;
+  const targetDays = Math.min(365, Math.max(1, Math.round(input.targetDays)));
   const k: Kabala = {
     id: uid(),
     he: input.he,
     es: input.es,
     kavana: input.kavana,
+    kind: input.kind ?? 'cuidar',
+    ...(input.presetId ? { presetId: input.presetId } : {}),
     area: input.area,
-    targetDays: input.targetDays,
+    targetDays,
     mode: input.mode,
     onFall: input.onFall,
     startDayId: input.startDayId,
     startHebrewDate: input.startHebrewDate,
     status: 'activa',
-    days: { [input.startDayId]: { status: seed, at: nowIso() } },
+    days: seed ? { [input.startDayId]: { status: seed, at: nowIso() } } : {},
     milestonesSeen: [],
     createdAt: nowIso(),
     completedAt: null,
@@ -487,9 +487,10 @@ export async function createKabala(
 }
 
 /**
- * Marca el día `dayId` de la kabalá. Una caída crea además un `Entry` real en el
- * área de caídas (tag `kabala-40`) para que fluya al tablero, la boleta y las
- * métricas — sin base paralela. Nunca borra ni "reinicia" en modo acumulativo.
+ * Marca el día `dayId` de la kabalá. En una kabalá de tipo 'cuidar', una caída crea además
+ * un `Entry` real en el área de caídas (tag `kabala`) para que fluya al tablero, la boleta y
+ * las métricas — sin base paralela. En una de tipo 'hacer', un día que no se pudo solo queda
+ * anotado: no es una caída. Nunca borra ni "reinicia" en modo acumulativo.
  */
 export async function markKabalaDay(args: {
   id: string;
@@ -508,16 +509,16 @@ export async function markKabalaDay(args: {
     },
   };
   await db.kabalot.put(next);
-  if (args.status === 'caida') {
+  if (args.status === 'caida' && (k.kind ?? 'cuidar') === 'cuidar') {
     await addEntry({
       dayId: args.dayId,
       hebrewDate: args.hebrewDate,
       area: 'fall',
       areasSecondary: k.area && k.area !== 'fall' ? [k.area] : [],
-      tags: ['kabala-40', 'shemirat-habrit'],
+      tags: ['kabala'],
       text: args.note?.trim()
         ? args.note.trim()
-        : 'Caída registrada desde la kabalá de kedushá. Lo que sigue ahora es el regreso.',
+        : `Caída registrada desde la kabalá "${k.es}". Lo que sigue ahora es el regreso.`,
       fields: { _kabala: { kabalaId: k.id } },
       source: 'quick',
       valence: 'fall',

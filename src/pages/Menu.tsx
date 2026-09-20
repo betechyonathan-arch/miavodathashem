@@ -1,7 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useZury } from '../state/zury';
 import { Card, SectionTitle } from '../components/ui';
-import { getGender } from '../lib/gender';
 import { getSession } from '../lib/auth/session';
 
 interface Row {
@@ -48,7 +47,7 @@ const GROUPS: Group[] = [
     es: 'Mi camino',
     rows: [
       { he: 'יהודי שלם', es: 'Ser Yehudí — el círculo', desc: 'El círculo exacto: catálogo de halajot y jumrot + constancia de por vida − caídas. Kabalot de crecimiento.', to: '/yehudi' },
-      ...(getGender() === 'hombre' ? [{ he: 'קבלה', es: 'Kabalá de 40 días', desc: '40 días de kedushá / shemirat habrit. Marca tu día, mira el progreso, con el flujo de regreso si caes. Bli neder.', to: '/kabala' }] : []),
+      { he: 'קבלה', es: 'Mis kabalot', desc: 'Crea tus compromisos con fecha: qué cuidar o hacer, y cuántos días. Con sugerencias para ti. Bli neder.', to: '/kabala' },
       { he: 'השליחות', es: 'Misión de vida', desc: 'Tu identidad, tu para qué, tu midá principal.', to: '/mision?t=identidad' },
       { he: 'שלבים', es: 'Etapas de vida', desc: 'Define y compara las etapas por las que vas pasando.', to: '/mision?t=etapas' },
       { he: 'מטרות', es: 'Metas', desc: 'Del día a la semana, al mes, al año, a la misión.', to: '/mision?t=metas' },

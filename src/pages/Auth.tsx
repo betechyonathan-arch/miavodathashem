@@ -60,6 +60,20 @@ export default function Auth() {
           <div className="mt-2 text-[11px] uppercase tracking-[0.18em] text-ink-faint">Avodah</div>
         </div>
 
+        <div className="mb-4 rounded-2xl border border-gold/60 bg-raised p-4">
+          <div className="text-[12px] font-medium uppercase tracking-[0.16em] text-gold">Tu información es privada</div>
+          <p className="mt-1.5 text-[13.5px] leading-relaxed text-ink">
+            Tus registros, caídas, metas y kabalot se guardan <strong>solo en tu dispositivo</strong>. Solo tú puedes verlos:
+            nadie más, ni los administradores de la app ni quien la creó.
+          </p>
+          <p className="mt-2 text-[11.5px] leading-relaxed text-ink-soft">
+            {backendConfigured
+              ? 'Al servidor solo van tu nombre, tu correo y tu género, para tu cuenta.'
+              : 'Modo de prueba: nada sale de este dispositivo.'}{' '}
+            La IA es opcional y viene apagada; solo si tú la activas, el texto que elijas analizar se envía a Anthropic.
+          </p>
+        </div>
+
         <div className="mb-4 grid grid-cols-2 rounded-xl border border-line bg-raised p-1 text-[14px]">
           {(['registro', 'login'] as const).map((m) => (
             <button
@@ -155,7 +169,7 @@ export default function Auth() {
 
         <p className="mt-4 text-center text-[12px] leading-relaxed text-ink-faint">
           {backendConfigured
-            ? 'Tu cuenta vive en el servidor: puedes entrar desde cualquier dispositivo. Tus registros se guardan en este dispositivo; expórtalos seguido desde Ajustes.'
+            ? 'Puedes entrar a tu cuenta desde cualquier dispositivo, pero tus registros viven solo en el que los creó: expórtalos seguido desde Ajustes.'
             : 'Modo de prueba: tu cuenta y tus registros se guardan solo en este dispositivo.'}
         </p>
       </div>

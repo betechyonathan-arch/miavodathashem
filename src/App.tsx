@@ -3,12 +3,12 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { useZury } from './state/zury';
 import { startCloudSync } from './lib/sync/cloud';
 import { scheduleReminders } from './lib/reminders';
-import { getGender } from './lib/gender';
 import { getSession } from './lib/auth/session';
 import { initSwAutoUpdate } from './lib/swUpdate';
 import MussarLine from './components/MussarLine';
 import Splash from './components/Splash';
 import Kavana from './components/Kavana';
+import Welcome from './components/Welcome';
 import AppShell from './components/AppShell';
 import Dashboard from './pages/Dashboard';
 import CheckIn from './pages/CheckIn';
@@ -83,6 +83,9 @@ export default function App() {
     return <Kavana onContinue={() => setPassedKavana(true)} />;
   }
 
+  // Cuenta nueva: una bienvenida que explica la app, deja clara la privacidad y sugiere una primera kabalá.
+  if (settings && !settings.welcomeDoneAt) return <Welcome />;
+
   return (
     <Routes>
       <Route element={<AppShell />}>
@@ -98,7 +101,7 @@ export default function App() {
         <Route path="tora" element={<Tora />} />
         <Route path="musar" element={<Navigate to="/tora?t=musar" replace />} />
         <Route path="yehudi" element={<Yehudi />} />
-        {getGender() === 'hombre' && <Route path="kabala" element={<KabalaPage />} />}
+        <Route path="kabala" element={<KabalaPage />} />
         <Route path="boleta" element={<Boleta />} />
         <Route path="menu" element={<Menu />} />
         <Route path="ajustes" element={<Settings />} />

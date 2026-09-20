@@ -11,7 +11,7 @@ import { accountabilityCallouts } from '../lib/accountability';
 import { pickMusar } from '../lib/musar';
 import { baseMusarContext } from '../lib/musar/context';
 import { computeYehudiCircle } from '../lib/yehudi/circle';
-import { kabalaProgress } from '../lib/kabala';
+import KabalotCard from '../components/KabalotCard';
 import { pendingBoletaPeriod } from '../lib/boleta';
 import { timeHM } from '../lib/format';
 import { Card, Ring, SectionTitle } from '../components/ui';
@@ -20,9 +20,8 @@ import MussarLine from '../components/MussarLine';
 import QuickRegister from '../components/QuickRegister';
 import MitzvotToday from '../components/MitzvotToday';
 import YahrzeitToday from '../components/YahrzeitToday';
-import type { AreaId, DayRecord, Entry, Goal, Kabala } from '../lib/db/schema';
+import type { AreaId, DayRecord, Entry, Goal } from '../lib/db/schema';
 import EntryList from '../components/EntryList';
-import { getGender } from '../lib/gender';
 
 export default function Dashboard() {
   const { day, dayRecord, now, settings } = useZury();
@@ -51,15 +50,6 @@ export default function Dashboard() {
   const yehudiCircle = useMemo(
     () => (settings ? computeYehudiCircle(settings, lifeEntries) : null),
     [settings, lifeEntries],
-  );
-
-  const activeKabala = useLiveQuery(
-    async () => {
-      const rows = await db.kabalot.where('status').equals('activa').toArray();
-      return rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0] ?? null;
-    },
-    [],
-    null as Kabala | null,
   );
 
   const allGoals = useLiveQuery(() => db.goals.toArray(), [], [] as Goal[]);
@@ -101,47 +91,11 @@ export default function Dashboard() {
 
   const areaCounts = stats.byArea;
   const cap = 3; // 3 registros en un área = anillo lleno (formula transparente)
-  const kp = activeKabala ? kabalaProgress(activeKabala, now, day.dayId) : null;
 
   return (
     <div className="space-y-5">
-      {/* Kabalá de 40 días de kedushá (shemirat habrit) — solo hombres */}
-      {getGender() === 'hombre' && (
-      <button onClick={() => navigate('/kabala')} className="block w-full text-left">
-        <Card className="flex items-center gap-4 border-gold/50 p-4">
-          {activeKabala && kp ? (
-            <>
-              <Ring value={kp.pct} size={76} stroke={7} emoji={`${kp.cleanDays}`} />
-              <div className="min-w-0 flex-1">
-                <div className="text-[12px] uppercase tracking-[0.16em] text-ink-faint">Kabalá · bli neder</div>
-                <div className="hebrew text-2xl leading-tight text-gold">
-                  קדושה · יום {kp.cleanDays} מ־{kp.target}
-                </div>
-                <p className="mt-0.5 text-[11px] leading-relaxed text-ink-faint">
-                  {kp.done
-                    ? 'Completada — toca para cerrarla o renovarla.'
-                    : kp.todayStatus
-                      ? `Hoy ya está marcado · faltan ${kp.remaining} días limpios`
-                      : `Marca tu día de hoy · faltan ${kp.remaining} días limpios`}
-                </p>
-              </div>
-            </>
-          ) : (
-            <>
-              <span className="hebrew shrink-0 text-3xl text-gold">קַבָּלָה</span>
-              <div className="min-w-0 flex-1">
-                <div className="text-[12px] uppercase tracking-[0.16em] text-ink-faint">Kabalá con fecha</div>
-                <div className="text-[15px] text-ink">40 días de kedushá · shemirat habrit</div>
-                <p className="mt-0.5 text-[11px] leading-relaxed text-ink-faint">
-                  Toca para empezar — hoy es el día 1. Bli neder.
-                </p>
-              </div>
-            </>
-          )}
-          <span className="text-ink-faint">›</span>
-        </Card>
-      </button>
-      )}
+      {/* Mis kabalot: las que la persona creó, o una invitación a empezar la primera */}
+      <KabalotCard />
 
       {/* Círculo principal */}
       <Card className="relative overflow-hidden p-5">

@@ -1,24 +1,79 @@
 import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useNavigate } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useZury } from '../state/zury';
 import { db } from '../lib/db/db';
 import { createKabala, markKabalaDay, updateKabala } from '../lib/db/repo';
-import { KABALA_KEDUSHA_PRESET, kabalaProgress } from '../lib/kabala';
+import {
+  KIND_COPY,
+  PRESET_BY_ID,
+  TARGET_SHORTCUTS,
+  kabalaProgress,
+  kindOf,
+  presetsFor,
+  type KabalaPreset,
+} from '../lib/kabala';
+import { getGender } from '../lib/gender';
 import { resolveJewishDay, keyToNoon } from '../lib/jewishDay';
 import { hebrewDateEs } from '../lib/format';
-import type { Kabala } from '../lib/db/schema';
+import type { Kabala, KabalaKind } from '../lib/db/schema';
 import { Btn, Card, Field, Ring, Sheet, SectionTitle, inputCls } from '../components/ui';
 
+const chip = (on: boolean) =>
+  `rounded-lg border px-3 py-1.5 text-[13px] ${on ? 'border-gold bg-gold text-[#1a140a]' : 'border-line bg-raised text-ink-soft'}`;
+
+/**
+ * Kabalot: compromisos con fecha que cada persona crea a su medida — cuántos días, de qué
+ * tipo y para qué. Hay sugerencias según el género, pero todo es editable.
+ *   /kabala            → mis kabalot
+ *   /kabala?nueva=ID   → crear una (ID = sugerencia, o "1" para crear desde cero)
+ *   /kabala?id=ID      → una kabalá en detalle
+ */
 export default function KabalaPage() {
-  const { day, now } = useZury();
+  const { day } = useZury();
+  const [params, setParams] = useSearchParams();
   const all = useLiveQuery(() => db.kabalot.toArray(), [], [] as Kabala[]);
 
+  const nueva = params.get('nueva');
+  const id = params.get('id');
+  const selected = id ? all.find((k) => k.id === id) : undefined;
+
+  if (!day) return null;
+
+  if (nueva) {
+    return (
+      <NewKabala
+        presetId={nueva === '1' ? null : nueva}
+        startDayId={day.dayId}
+        startHebrewDate={day.hebrewDate}
+        onCancel={() => setParams({})}
+        onCreated={(newId) => setParams({ id: newId })}
+      />
+    );
+  }
+  if (selected) {
+    return <KabalaDetail k={selected} onBack={() => setParams({})} onOpen={(kid) => setParams({ id: kid })} />;
+  }
+  return <KabalaList all={all} onNew={(pid) => setParams({ nueva: pid })} onOpen={(kid) => setParams({ id: kid })} />;
+}
+
+/* ------------------------------------------------------------------ */
+
+function KabalaList({
+  all,
+  onNew,
+  onOpen,
+}: {
+  all: Kabala[];
+  onNew: (presetId: string) => void;
+  onOpen: (id: string) => void;
+}) {
+  const { now, day } = useZury();
+  const gender = getGender();
+  const suggestions = presetsFor(gender);
+
   const active = useMemo(
-    () =>
-      all
-        .filter((k) => k.status === 'activa')
-        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0] ?? null,
+    () => all.filter((k) => k.status === 'activa').sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     [all],
   );
   const past = useMemo(
@@ -26,16 +81,72 @@ export default function KabalaPage() {
     [all],
   );
 
-  if (!day) return null;
-
   return (
     <div className="space-y-5">
-      <SectionTitle he="קַבָּלָה" es="Kabalá con fecha" />
-      {active ? (
-        <ActiveKabala k={active} now={now} />
-      ) : (
-        <NewKabala startDayId={day.dayId} startHebrewDate={day.hebrewDate} />
+      <SectionTitle he="קַבָּלָה" es="Mis kabalot" />
+      <p className="px-1 text-[13px] leading-relaxed text-ink-soft">
+        Una kabalá es un compromiso con fecha que tú eliges: cuántos días, qué cuidar o qué hacer, y para qué. Se toma{' '}
+        <span className="text-ink">bli neder</span> y es solo tuya: nadie más la ve.
+      </p>
+
+      {active.length > 0 && (
+        <div className="space-y-2">
+          {active.map((k) => {
+            const p = kabalaProgress(k, now, day?.dayId);
+            const copy = KIND_COPY[kindOf(k)];
+            return (
+              <button key={k.id} onClick={() => onOpen(k.id)} className="block w-full text-left">
+                <Card className="flex items-center gap-4 p-4 transition-colors hover:border-gold">
+                  <Ring value={p.pct} size={64} stroke={6} emoji={`${p.cleanDays}`} />
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[15px] text-ink">{k.es}</div>
+                    {k.he && <div className="hebrew text-[14px] text-gold">{k.he}</div>}
+                    <div className="mt-0.5 text-[12px] text-ink-faint">
+                      {p.cleanDays} de {p.target} {copy.unitPlural} ·{' '}
+                      {p.done ? 'completada' : p.todayStatus ? 'hoy ya marcado' : 'hoy pendiente'}
+                    </div>
+                  </div>
+                  <span className="text-ink-faint">›</span>
+                </Card>
+              </button>
+            );
+          })}
+        </div>
       )}
+
+      <div>
+        <SectionTitle
+          es={active.length > 0 ? 'Empezar otra' : 'Empieza tu primera kabalá'}
+          he={active.length > 0 ? 'עוד אחת' : 'להתחיל'}
+        />
+        <div className="space-y-2">
+          {suggestions.map((s, i) => (
+            <button key={s.id} onClick={() => onNew(s.id)} className="block w-full text-left">
+              <Card className="p-4 transition-colors hover:border-gold">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-[15px] text-ink">{s.es}</div>
+                    <div className="hebrew text-[14px] text-gold">{s.he}</div>
+                  </div>
+                  {i === 0 && (
+                    <span className="shrink-0 rounded-md border border-gold px-2 py-0.5 text-[10px] uppercase tracking-wide text-gold">
+                      recomendada
+                    </span>
+                  )}
+                </div>
+                <p className="mt-1.5 text-[12px] leading-relaxed text-ink-soft">{s.blurb}</p>
+                <p className="mt-1 text-[11px] text-ink-faint">Sugerida: {s.days} días · puedes cambiarlo</p>
+              </Card>
+            </button>
+          ))}
+          <button onClick={() => onNew('1')} className="block w-full text-left">
+            <Card className="border-dashed p-4 transition-colors hover:border-gold">
+              <div className="text-[15px] text-ink">+ Crear la mía</div>
+              <p className="mt-0.5 text-[12px] text-ink-soft">Tú eliges el nombre, los días y para qué la haces.</p>
+            </Card>
+          </button>
+        </div>
+      </div>
 
       {past.length > 0 && (
         <div>
@@ -44,7 +155,7 @@ export default function KabalaPage() {
             {past.map((k) => {
               const p = kabalaProgress(k, now);
               return (
-                <div key={k.id} className="flex items-center justify-between px-4 py-3">
+                <button key={k.id} onClick={() => onOpen(k.id)} className="flex w-full items-center justify-between px-4 py-3 text-left">
                   <div className="min-w-0">
                     <div className="text-[13px] text-ink">{k.es}</div>
                     <div className="text-[11px] text-ink-faint">
@@ -53,14 +164,12 @@ export default function KabalaPage() {
                   </div>
                   <span
                     className={`shrink-0 rounded-md border px-2 py-0.5 text-[11px] ${
-                      k.status === 'completada'
-                        ? 'border-[var(--success)] text-[var(--success)]'
-                        : 'border-line text-ink-faint'
+                      k.status === 'completada' ? 'border-[var(--success)] text-[var(--success)]' : 'border-line text-ink-faint'
                     }`}
                   >
                     {k.status === 'completada' ? 'completada' : 'no terminada'}
                   </span>
-                </div>
+                </button>
               );
             })}
           </Card>
@@ -68,9 +177,8 @@ export default function KabalaPage() {
       )}
 
       <p className="px-1 text-[11px] leading-relaxed text-ink-faint">
-        Se toma <span className="text-ink-soft">bli neder</span>. Una caída no es un veredicto y no
-        significa que Hashem retiene la yeshuá: lo que sigue es el regreso, ahora. Marcar la vuelta
-        también cuenta.
+        Una caída o un día que no pudiste no es un veredicto: lo que sigue es volver, ahora. Marcar la vuelta también
+        cuenta.
       </p>
     </div>
   );
@@ -78,115 +186,207 @@ export default function KabalaPage() {
 
 /* ------------------------------------------------------------------ */
 
-function NewKabala({ startDayId, startHebrewDate }: { startDayId: string; startHebrewDate: string }) {
-  const [kavana, setKavana] = useState(KABALA_KEDUSHA_PRESET.kavana);
-  const [target, setTarget] = useState(KABALA_KEDUSHA_PRESET.targetDays);
-  const [mode, setMode] = useState<Kabala['mode']>(KABALA_KEDUSHA_PRESET.mode);
+function NewKabala({
+  presetId,
+  startDayId,
+  startHebrewDate,
+  onCancel,
+  onCreated,
+}: {
+  presetId: string | null;
+  startDayId: string;
+  startHebrewDate: string;
+  onCancel: () => void;
+  onCreated: (id: string) => void;
+}) {
+  const preset: KabalaPreset | undefined = presetId ? PRESET_BY_ID[presetId] : undefined;
+
+  const [title, setTitle] = useState(preset?.es ?? '');
+  const [kind, setKind] = useState<KabalaKind>(preset?.kind ?? 'hacer');
+  const [target, setTarget] = useState(preset?.days ?? 30);
+  const [targetText, setTargetText] = useState(String(preset?.days ?? 30));
+  const [kavana, setKavana] = useState(preset?.kavana ?? '');
+  const [subject, setSubject] = useState('');
+  const [mode, setMode] = useState<Kabala['mode']>('acumulativo');
   const [showOpts, setShowOpts] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  function pickTarget(n: number) {
+    setTarget(n);
+    setTargetText(String(n));
+  }
+
+  function typeTarget(v: string) {
+    setTargetText(v);
+    const n = Number(v);
+    if (Number.isInteger(n) && n >= 1 && n <= 365) setTarget(n);
+  }
+
+  function changeSubject(v: string) {
+    setSubject(v);
+    if (preset?.subject) setKavana(v.trim() ? preset.subject.kavanaFor(v.trim()) : preset.kavana);
+  }
 
   async function begin() {
+    if (!title.trim()) return setError('Ponle un nombre a tu kabalá.');
+    if (!Number.isInteger(Number(targetText)) || Number(targetText) < 1 || Number(targetText) > 365) {
+      return setError('Los días deben ser un número entre 1 y 365.');
+    }
+    setError('');
     setBusy(true);
-    await createKabala({
-      he: KABALA_KEDUSHA_PRESET.he,
-      es: `${target} días de kedushá`,
-      kavana: kavana.trim() || KABALA_KEDUSHA_PRESET.kavana,
-      area: KABALA_KEDUSHA_PRESET.area,
+    const k = await createKabala({
+      he: preset?.he ?? '',
+      es: title.trim(),
+      kavana: kavana.trim(),
+      kind,
+      presetId: preset?.id,
+      area: preset?.area ?? 'mitzvot',
       targetDays: target,
       mode,
       onFall: mode === 'acumulativo' ? 'pausa' : 'reinicia',
       startDayId,
       startHebrewDate,
-      seedStartDay: 'limpio',
+      seedStartDay: null,
     });
     setBusy(false);
+    onCreated(k.id);
   }
 
   return (
-    <Card className="space-y-4 p-5">
-      <div>
-        <div className="hebrew text-2xl leading-tight text-gold">{KABALA_KEDUSHA_PRESET.he}</div>
-        <p className="mt-1 text-[13px] leading-relaxed text-ink-soft">
-          {target} días de shemirat habrit — kedushá de la brit, nada de masturbación. El día 1 es
-          hoy, <span className="text-ink">{hebrewDateEs(startHebrewDate)}</span>.
-        </p>
-      </div>
-
-      <Field label="Kavaná" hint="Para qué la haces. Se muestra cada día.">
-        <textarea className={inputCls} rows={4} value={kavana} onChange={(e) => setKavana(e.target.value)} />
-      </Field>
-
-      <button onClick={() => setShowOpts((v) => !v)} className="text-[12px] text-gold">
-        {showOpts ? 'Ocultar opciones' : 'Opciones (meta y modo)'}
-      </button>
-
-      {showOpts && (
-        <div className="space-y-3 rounded-xl border border-line bg-sunken p-3">
-          <Field label="Meta">
-            <div className="flex gap-1.5">
-              {[40, 90, 180].map((n) => (
-                <button
-                  key={n}
-                  onClick={() => setTarget(n)}
-                  className={`rounded-lg border px-3 py-1.5 text-[13px] ${
-                    target === n ? 'border-gold bg-gold text-[#1a140a]' : 'border-line bg-raised text-ink-soft'
-                  }`}
-                >
-                  {n} días
-                </button>
-              ))}
-            </div>
-          </Field>
-          <Field
-            label="Cómo cuenta una caída"
-            hint={
-              mode === 'acumulativo'
-                ? 'Acumulativo: sumas días limpios en total; una caída pausa, no borra. Menos riesgo de yeush.'
-                : 'Racha: días seguidos; una caída la reinicia a 0. Más fuerza al contador, más duro.'
-            }
-          >
-            <div className="flex gap-1.5">
-              <button
-                onClick={() => setMode('acumulativo')}
-                className={`rounded-lg border px-3 py-1.5 text-[13px] ${
-                  mode === 'acumulativo' ? 'border-gold bg-gold text-[#1a140a]' : 'border-line bg-raised text-ink-soft'
-                }`}
-              >
-                Acumulativo
-              </button>
-              <button
-                onClick={() => setMode('racha')}
-                className={`rounded-lg border px-3 py-1.5 text-[13px] ${
-                  mode === 'racha' ? 'border-gold bg-gold text-[#1a140a]' : 'border-line bg-raised text-ink-soft'
-                }`}
-              >
-                Racha
-              </button>
-            </div>
-          </Field>
-        </div>
-      )}
-
-      <Btn onClick={begin} disabled={busy} className="w-full">
-        {busy ? 'Comenzando…' : 'Comenzar — hoy es el día 1'}
+    <div className="space-y-5">
+      <Btn variant="quiet" onClick={onCancel}>
+        ‹ Mis kabalot
       </Btn>
-      <p className="text-[11px] text-ink-faint">Bli neder.</p>
-    </Card>
+      <Card className="space-y-4 p-5">
+        <div>
+          {preset?.he && <div className="hebrew text-2xl leading-tight text-gold">{preset.he}</div>}
+          <div className="text-[12px] uppercase tracking-[0.16em] text-ink-faint">
+            {preset ? 'Kabalá sugerida' : 'Tu propia kabalá'}
+          </div>
+          {preset && <p className="mt-1 text-[13px] leading-relaxed text-ink-soft">{preset.blurb}</p>}
+          <p className="mt-1 text-[12px] text-ink-faint">
+            El día 1 es hoy, <span className="text-ink">{hebrewDateEs(startHebrewDate)}</span>.
+          </p>
+        </div>
+
+        <Field label="Nombre de tu kabalá">
+          <input
+            className={inputCls}
+            value={title}
+            maxLength={80}
+            placeholder="Por ejemplo: Cuidar mi habla, Decir Shemá con kavaná…"
+            onChange={(e) => setTitle(e.target.value)}
+          />
+        </Field>
+
+        {!preset && (
+          <Field label="¿Qué tipo de kabalá es?">
+            <div className="flex flex-wrap gap-1.5">
+              <button onClick={() => setKind('cuidar')} className={chip(kind === 'cuidar')}>
+                Cuidarme de algo
+              </button>
+              <button onClick={() => setKind('hacer')} className={chip(kind === 'hacer')}>
+                Hacer algo cada día
+              </button>
+            </div>
+          </Field>
+        )}
+
+        {preset?.subject && (
+          <Field label={preset.subject.label} hint={preset.subject.hint}>
+            <input
+              className={inputCls}
+              value={subject}
+              maxLength={60}
+              onChange={(e) => changeSubject(e.target.value)}
+            />
+          </Field>
+        )}
+
+        <Field label="¿Cuántos días?" hint="Elige un atajo o escribe el número que quieras (de 1 a 365).">
+          <div className="flex flex-wrap items-center gap-1.5">
+            {TARGET_SHORTCUTS.map((n) => (
+              <button key={n} onClick={() => pickTarget(n)} className={chip(target === n && targetText === String(n))}>
+                {n}
+              </button>
+            ))}
+            <input
+              className={inputCls + ' !w-24'}
+              inputMode="numeric"
+              value={targetText}
+              aria-label="Número de días"
+              onChange={(e) => typeTarget(e.target.value.replace(/[^0-9]/g, ''))}
+            />
+            <span className="text-[13px] text-ink-faint">días</span>
+          </div>
+        </Field>
+
+        <Field label="Kavaná — para qué la haces (opcional)" hint="Se muestra cada día. Es privada.">
+          <textarea className={inputCls} rows={3} value={kavana} onChange={(e) => setKavana(e.target.value)} />
+        </Field>
+
+        <button onClick={() => setShowOpts((v) => !v)} className="text-[12px] text-gold">
+          {showOpts ? 'Ocultar opciones' : 'Opciones avanzadas'}
+        </button>
+        {showOpts && (
+          <div className="space-y-3 rounded-xl border border-line bg-sunken p-3">
+            <Field
+              label="Cómo cuenta un día que no llegas"
+              hint={
+                mode === 'acumulativo'
+                  ? 'Acumulativo: sumas días en total; uno fallido pausa, no borra. Menos riesgo de desanimarte.'
+                  : 'Racha: días seguidos; uno fallido la reinicia a 0. Más fuerza al contador, más duro.'
+              }
+            >
+              <div className="flex gap-1.5">
+                <button onClick={() => setMode('acumulativo')} className={chip(mode === 'acumulativo')}>
+                  Acumulativo
+                </button>
+                <button onClick={() => setMode('racha')} className={chip(mode === 'racha')}>
+                  Racha
+                </button>
+              </div>
+            </Field>
+          </div>
+        )}
+
+        {error && <p className="text-[13px] text-[var(--danger)]">{error}</p>}
+        <Btn onClick={begin} disabled={busy} className="w-full">
+          {busy ? 'Comenzando…' : 'Comenzar — hoy es el día 1'}
+        </Btn>
+        <p className="text-[11px] text-ink-faint">Bli neder. Solo tú ves tus kabalot.</p>
+      </Card>
+    </div>
   );
 }
 
 /* ------------------------------------------------------------------ */
 
-function ActiveKabala({ k, now }: { k: Kabala; now: Date }) {
-  const navigate = useNavigate();
-  const { day, settings } = useZury();
+function nextLevel(target: number): number | null {
+  return [7, 18, 30, 40, 90, 180, 365].find((n) => n > target) ?? null;
+}
+
+function KabalaDetail({
+  k,
+  onBack,
+  onOpen,
+}: {
+  k: Kabala;
+  onBack: () => void;
+  onOpen: (id: string) => void;
+}) {
+  const { day, now, settings } = useZury();
+  const kind = kindOf(k);
+  const copy = KIND_COPY[kind];
   const p = kabalaProgress(k, now, day?.dayId);
+  const isActive = k.status === 'activa';
   const [returnOpen, setReturnOpen] = useState(false);
   const [note, setNote] = useState('');
   const [confirmClean, setConfirmClean] = useState(false);
   const [editKey, setEditKey] = useState<string | null>(null);
 
-  const milestone = p.milestonesToCelebrate[0] ?? null;
+  const milestone = isActive ? p.milestonesToCelebrate[0] ?? null : null;
 
   async function mark(status: 'limpio' | 'caida') {
     if (!day) return;
@@ -217,52 +417,65 @@ function ActiveKabala({ k, now }: { k: Kabala; now: Date }) {
   async function finish(renewTarget?: number) {
     await updateKabala(k.id, { status: 'completada', completedAt: new Date().toISOString() });
     if (renewTarget && day) {
-      await createKabala({
+      const renewed = await createKabala({
         he: k.he,
-        es: `${renewTarget} días de kedushá`,
+        es: k.es,
         kavana: k.kavana,
+        kind: k.kind,
+        presetId: k.presetId,
         area: k.area,
         targetDays: renewTarget,
         mode: k.mode,
         onFall: k.onFall,
         startDayId: day.dayId,
         startHebrewDate: day.hebrewDate,
-        seedStartDay: 'limpio',
+        seedStartDay: null,
       });
+      onOpen(renewed.id);
+    } else {
+      onBack();
     }
   }
 
   async function abandon() {
+    if (!window.confirm('¿Dejar esta kabalá? Queda en "Kabalot anteriores".')) return;
     await updateKabala(k.id, { status: 'abandonada', abandonedAt: new Date().toISOString() });
+    onBack();
   }
+
+  const upgrade = nextLevel(k.targetDays);
 
   return (
     <div className="space-y-5">
+      <Btn variant="quiet" onClick={onBack}>
+        ‹ Mis kabalot
+      </Btn>
+
       {/* Progreso */}
       <Card className="p-5">
         <div className="flex items-center gap-4">
           <Ring value={p.pct} size={104} stroke={8} emoji={`${p.cleanDays}`} />
           <div className="min-w-0 flex-1">
-            <div className="text-[12px] uppercase tracking-[0.16em] text-ink-faint">Kabalá · bli neder</div>
-            <div className="hebrew text-2xl leading-tight text-gold">
-              קדושה · יום {p.cleanDays} מ־{p.target}
+            <div className="text-[12px] uppercase tracking-[0.16em] text-ink-faint">
+              Kabalá · bli neder{!isActive ? ` · ${k.status}` : ''}
             </div>
+            <div className="text-xl leading-tight text-ink">{k.es}</div>
+            {k.he && <div className="hebrew text-lg text-gold">{k.he}</div>}
             <p className="mt-1 text-[12px] leading-relaxed text-ink-soft">
               {p.done
-                ? '¡Completada! Mira abajo para cerrarla o renovarla.'
-                : `${p.remaining} ${p.remaining === 1 ? 'día limpio' : 'días limpios'} para completar · día ${p.elapsedDays} desde el inicio`}
+                ? '¡Completada!'
+                : `${p.remaining} ${p.remaining === 1 ? copy.unit : copy.unitPlural} para completar · día ${p.elapsedDays} desde el inicio`}
             </p>
             <div className="mt-0.5 text-[11px] text-ink-faint">
-              {k.mode === 'acumulativo' ? 'Acumulativo' : 'Racha'}
-              {p.fallDays > 0 ? ` · ${p.fallDays} ${p.fallDays === 1 ? 'caída' : 'caídas'} registradas` : ''}
+              {p.cleanDays} de {p.target} · {k.mode === 'acumulativo' ? 'Acumulativo' : 'Racha'}
+              {p.fallDays > 0 ? ` · ${p.fallDays} ${p.fallDays === 1 ? 'día sin cumplir' : 'días sin cumplir'}` : ''}
             </div>
           </div>
         </div>
 
-        {/* Tira de los últimos días */}
         <div className="mt-4 flex flex-wrap gap-1">
           {p.strip.map((s) => {
-            const editable = s.status === 'sin' && s.key !== p.todayKey;
+            const editable = isActive && s.status === 'sin' && s.key !== p.todayKey;
             const cls = `h-3.5 w-3.5 rounded-[3px] border ${
               s.status === 'limpio'
                 ? 'border-transparent bg-[var(--success)]'
@@ -279,11 +492,13 @@ function ActiveKabala({ k, now }: { k: Kabala; now: Date }) {
             );
           })}
         </div>
-        <p className="mt-1 text-[10px] text-ink-faint">
-          Un día sin marcar (borde punteado) se puede completar después — toca el cuadro.
-        </p>
+        {isActive && (
+          <p className="mt-1 text-[10px] text-ink-faint">
+            Un día sin marcar (borde punteado) se puede completar después — toca el cuadro.
+          </p>
+        )}
 
-        {p.nextMilestone && !p.done && (
+        {isActive && p.nextMilestone && !p.done && (
           <p className="mt-3 text-[11px] text-ink-faint">
             Próximo hito: <span className="text-ink-soft">{p.nextMilestone} días</span>
             {p.nextMilestone === 18 ? ' (חי)' : ''}.
@@ -292,89 +507,84 @@ function ActiveKabala({ k, now }: { k: Kabala; now: Date }) {
       </Card>
 
       {/* Marca de hoy */}
-      {!p.done && (
+      {isActive && !p.done && (
         <Card className="space-y-3 p-4">
-          <div className="text-[13px] font-medium text-ink">
-            Hoy · {hebrewDateEs(day?.hebrewDate ?? k.startHebrewDate)}
-          </div>
+          <div className="text-[13px] font-medium text-ink">Hoy · {hebrewDateEs(day?.hebrewDate ?? k.startHebrewDate)}</div>
           {p.todayStatus === 'limpio' ? (
             <div className="rounded-xl border border-[var(--success)] bg-[color-mix(in_srgb,var(--success)_12%,transparent)] p-3 text-[13px] text-ink">
-              שָׁמַרְתִּי הַיּוֹם · Hoy cuidaste. חזק ואמץ.
+              {copy.doneToday}
               <button onClick={() => setReturnOpen(true)} className="mt-1 block text-[11px] text-ink-faint underline">
-                Corregir a "caí"
+                Corregir a "{copy.miss.toLowerCase()}"
               </button>
             </div>
           ) : p.todayStatus === 'caida' ? (
             <div className="rounded-xl border border-[var(--danger)] p-3 text-[13px] text-ink">
-              Registraste una caída hoy. El regreso ya empezó al escribirlo. Mañana de nuevo, sin
-              arrastrar la culpa.
+              {copy.missToday}
               <button onClick={() => setConfirmClean(true)} className="mt-1 block text-[11px] text-ink-faint underline">
-                Cambiar a "cuidé hoy"
+                Cambiar a "{copy.done.replace(/^[^\s]*\s·\s/, '').toLowerCase()}"
               </button>
             </div>
           ) : (
             <div className="flex gap-2">
               <Btn onClick={() => setConfirmClean(true)} className="flex-1">
-                שמרתי · Cuidé hoy
+                {copy.done}
               </Btn>
               <Btn variant="danger" onClick={() => setReturnOpen(true)} className="flex-1">
-                Caí
+                {copy.miss}
               </Btn>
             </div>
           )}
-          <p className="text-[11px] text-ink-faint">
-            La raíz es el día: shemirat einayim, lo que ves y scrolleas, no quedarte solo con el
-            teléfono de noche, la hora de dormir.
-          </p>
         </Card>
       )}
 
       {/* Completada */}
-      {p.done && (
+      {isActive && p.done && (
         <Card className="space-y-3 border-gold/50 p-5">
-          <div className="hebrew text-xl text-gold">תָּם וְנִשְׁלַם · {p.target} días</div>
+          <div className="hebrew text-xl text-gold">תָּם וְנִשְׁלַם · {p.target}</div>
           <p className="text-[13px] leading-relaxed text-ink-soft">
-            Completaste la kabalá. Que sea le-zejut para tu zivug hagun bekarov. Puedes cerrarla,
-            renovarla o subir el nivel.
+            Completaste tu kabalá. Que sea para bien. Puedes cerrarla, renovarla o subir el nivel.
           </p>
           <div className="flex flex-wrap gap-2">
-            <Btn onClick={() => finish(40)}>Renovar 40 días</Btn>
-            <Btn variant="ghost" onClick={() => finish(90)}>Subir a 90</Btn>
-            <Btn variant="quiet" onClick={() => finish()}>Terminar</Btn>
+            <Btn onClick={() => finish(k.targetDays)}>Renovar {k.targetDays} días</Btn>
+            {upgrade && (
+              <Btn variant="ghost" onClick={() => finish(upgrade)}>
+                Subir a {upgrade}
+              </Btn>
+            )}
+            <Btn variant="quiet" onClick={() => finish()}>
+              Terminar
+            </Btn>
           </div>
         </Card>
       )}
 
       {/* Kavaná */}
-      <Card className="p-4">
-        <div className="text-[11px] uppercase tracking-[0.16em] text-ink-faint">Kavaná</div>
-        <p className="mt-1 text-[13px] leading-relaxed text-ink" dir="auto">
-          {k.kavana}
-        </p>
-      </Card>
-
-      {/* Apoyo */}
-      <div>
-        <SectionTitle es="Cuando pega el momento" he="בְּעֵת נִסָּיוֹן" />
-        <Card className="space-y-2 p-4 text-[13px] leading-relaxed text-ink-soft">
-          <p>· Párate. Cambia de cuarto. Sal del teléfono.</p>
-          <p>
-            · Un kapitel — Tehilim 51.{' '}
-            <span className="hebrew text-ink">לֵב טָהוֹר בְּרָא־לִי אֱלֹהִים וְרוּחַ נָכוֹן חַדֵּשׁ בְּקִרְבִּי</span>
-          </p>
-          <p>· 2 minutos de hitbodedut: pídele a Hashem, con tus palabras, ayuda — y el zivug.</p>
-          <p>
-            · Tikún HaKlali si puedes.{' '}
-            <button onClick={() => navigate('/musar')} className="text-gold underline">
-              Ir a Musar
-            </button>
+      {k.kavana.trim() && (
+        <Card className="p-4">
+          <div className="text-[11px] uppercase tracking-[0.16em] text-ink-faint">Kavaná</div>
+          <p className="mt-1 text-[13px] leading-relaxed text-ink" dir="auto">
+            {k.kavana}
           </p>
         </Card>
-      </div>
+      )}
 
-      <button onClick={abandon} className="px-1 text-[11px] text-ink-faint underline">
-        Dejar esta kabalá
-      </button>
+      {/* Apoyo */}
+      {isActive && (
+        <div>
+          <SectionTitle es={copy.supportTitle} he="עֵצָה" />
+          <Card className="space-y-2 p-4 text-[13px] leading-relaxed text-ink-soft">
+            {copy.support.map((t) => (
+              <p key={t}>· {t}</p>
+            ))}
+          </Card>
+        </div>
+      )}
+
+      {isActive && (
+        <button onClick={abandon} className="px-1 text-[11px] text-ink-faint underline">
+          Dejar esta kabalá
+        </button>
+      )}
 
       {/* Hito */}
       <Sheet
@@ -383,33 +593,32 @@ function ActiveKabala({ k, now }: { k: Kabala; now: Date }) {
         title={<div className="hebrew text-xl text-gold">חֲזַק · {milestone} días</div>}
       >
         <p className="text-[14px] leading-relaxed text-ink-soft">
-          {milestone} días de kedushá. No es poco: cada día limpio es una elección repetida. Sigue —
-          la meta son {p.target}. Que este zejut suba por tu zivug hagun.
+          {milestone} días. No es poco: cada día es una elección repetida. Sigue — la meta son {p.target}.
         </p>
         <Btn onClick={dismissMilestone} className="mt-4 w-full">
           חזק ואמץ
         </Btn>
       </Sheet>
 
-      {/* Regreso / caída */}
+      {/* Hoy no / caída */}
       <Sheet
         open={returnOpen}
         onClose={() => setReturnOpen(false)}
-        title={<div className="hebrew text-xl text-gold">הַחֲזָרָה · El regreso</div>}
+        title={<div className="hebrew text-xl text-gold">{kind === 'cuidar' ? 'הַחֲזָרָה · El regreso' : copy.miss}</div>}
       >
-        <p className="text-[14px] leading-relaxed text-ink-soft">
-          Registrar la caída no es castigo — es verdad, y la verdad es el principio del regreso. Esto{' '}
-          <span className="text-ink">no</span> significa que Hashem te retenga el zivug. Levántate
-          ahora, sin arrastrar la culpa.
-        </p>
-        <p className="mt-3 hebrew text-[15px] leading-relaxed text-ink" dir="rtl">
-          לֵב טָהוֹר בְּרָא־לִי אֱלֹהִים · וְרוּחַ נָכוֹן חַדֵּשׁ בְּקִרְבִּי
-        </p>
-        <p className="text-[11px] text-ink-faint">Tehilim 51:12</p>
+        <p className="text-[14px] leading-relaxed text-ink-soft">{copy.missSheet}</p>
+        {kind === 'cuidar' && (
+          <>
+            <p className="mt-3 hebrew text-[15px] leading-relaxed text-ink" dir="rtl">
+              לֵב טָהוֹר בְּרָא־לִי אֱלֹהִים · וְרוּחַ נָכוֹן חַדֵּשׁ בְּקִרְבִּי
+            </p>
+            <p className="text-[11px] text-ink-faint">Tehilim 51:12</p>
+          </>
+        )}
         <div className="mt-4">
           <Field
             label="Si quieres, una línea (opcional)"
-            hint="Qué pasó o qué harás distinto. Se guarda como registro de caída."
+            hint={kind === 'cuidar' ? 'Qué pasó o qué harás distinto. Se guarda como registro de caída.' : 'Qué pasó o qué harás distinto.'}
           >
             <textarea className={inputCls} rows={3} value={note} onChange={(e) => setNote(e.target.value)} />
           </Field>
@@ -419,31 +628,31 @@ function ActiveKabala({ k, now }: { k: Kabala; now: Date }) {
             Cancelar
           </Btn>
           <Btn variant="danger" onClick={() => mark('caida')} className="flex-1">
-            Registrar y volver
+            {kind === 'cuidar' ? 'Registrar y volver' : 'Anotar'}
           </Btn>
         </div>
       </Sheet>
 
-      {/* Confirmar día limpio */}
+      {/* Confirmar el día */}
       <Sheet
         open={confirmClean}
         onClose={() => setConfirmClean(false)}
-        title={<div className="hebrew text-lg text-gold">שָׁמַרְתִּי הַיּוֹם</div>}
+        title={<div className="hebrew text-lg text-gold">{copy.done}</div>}
       >
         <p className="text-[14px] leading-relaxed text-ink-soft">
-          ¿Marcar hoy como día cuidado? Suma a los {p.target} días de la kabalá.
+          {copy.confirmDone} Suma a los {p.target} días de la kabalá.
         </p>
         <div className="mt-4 flex gap-2">
           <Btn variant="ghost" onClick={() => setConfirmClean(false)} className="flex-1">
             Aún no
           </Btn>
           <Btn onClick={() => mark('limpio')} className="flex-1">
-            Sí, cuidé hoy
+            Sí
           </Btn>
         </div>
       </Sheet>
 
-      {/* Completar un día pasado sin marcar (p. ej. Shabat / Yom Tov sin teléfono) */}
+      {/* Completar un día pasado sin marcar */}
       <Sheet
         open={editKey != null}
         onClose={() => setEditKey(null)}
@@ -454,10 +663,10 @@ function ActiveKabala({ k, now }: { k: Kabala; now: Date }) {
         </p>
         <div className="mt-4 flex gap-2">
           <Btn variant="danger" onClick={() => editKey && markPast(editKey, 'caida')} className="flex-1">
-            Caí
+            {copy.miss}
           </Btn>
           <Btn onClick={() => editKey && markPast(editKey, 'limpio')} className="flex-1">
-            שמרתי · Cuidé
+            {copy.done}
           </Btn>
         </div>
         <button onClick={() => setEditKey(null)} className="mt-3 block w-full text-center text-[11px] text-ink-faint underline">
