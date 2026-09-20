@@ -9,6 +9,19 @@ import { Btn, Field, inputCls } from '../components/ui';
  * Puerta de entrada: crear cuenta o entrar. Se muestra antes de cargar la app.
  * Al tener éxito se recarga la página para abrir la base de datos de ese usuario.
  */
+/** Si la persona acaba de cambiar su contraseña, entra directo a "Entrar" con su correo escrito. */
+function readAfterReset(): { email: string } | null {
+  try {
+    const raw = sessionStorage.getItem('avodah.afterReset');
+    if (!raw) return null;
+    sessionStorage.removeItem('avodah.afterReset');
+    const v = JSON.parse(raw) as { email?: string };
+    return { email: v.email ?? '' };
+  } catch {
+    return null;
+  }
+}
+
 const KNOWN_KEY = 'avodah.hasAccount';
 function hasAccountHere(): boolean {
   try {
@@ -26,17 +39,26 @@ function rememberAccountHere(): void {
 }
 
 export default function Auth() {
+  const [after] = useState(readAfterReset);
   // Quien ya tuvo cuenta en este dispositivo (y no llega por un enlace de invitación) ve "Entrar" primero.
   const [mode, setMode] = useState<'login' | 'registro' | 'recuperar'>(
-    recoveryLinkError() ? 'recuperar' : hasAccountHere() && !getStoredReferral() ? 'login' : 'registro',
+    recoveryLinkError() ? 'recuperar' : after ? 'login' : hasAccountHere() && !getStoredReferral() ? 'login' : 'registro',
   );
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(after?.email ?? '');
   const [password, setPassword] = useState('');
   const [gender, setGender] = useState<Gender | null>(null);
   const [error, setError] = useState(recoveryLinkError());
-  const [notice, setNotice] = useState('');
+  const [notice, setNotice] = useState(after ? 'Tu contraseña cambió. Entra con la nueva.' : '');
+  const [cooldown, setCooldown] = useState(0);
   const [busy, setBusy] = useState(false);
+
+  // Tras pedir el enlace, el botón se bloquea 60 s: cada solicitud nueva invalida el correo anterior.
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
 
   function switchTo(m: 'login' | 'registro' | 'recuperar') {
     setMode(m);
@@ -56,7 +78,8 @@ export default function Auth() {
     try {
       if (mode === 'recuperar') {
         await requestPasswordReset(email);
-        setNotice('Si existe una cuenta con ese correo, te enviamos un enlace para crear una contraseña nueva. Revisa tu bandeja (y el spam).');
+        setNotice('Si existe una cuenta con ese correo, te enviamos un enlace. Usa solo el correo MÁS RECIENTE y ábrelo una sola vez: si pides otro, el anterior deja de servir. Revisa también el spam.');
+        setCooldown(60);
         setBusy(false);
         return;
       }
@@ -196,8 +219,8 @@ export default function Auth() {
           )}
           {error && <p className="text-[13px] text-[var(--danger)]">{error}</p>}
           {notice && <p className="text-[13px] text-[var(--success)]">{notice}</p>}
-          <Btn type="submit" disabled={busy} className="w-full">
-            {busy ? '…' : mode === 'registro' ? 'Crear mi cuenta' : mode === 'recuperar' ? 'Enviar enlace' : 'Entrar'}
+          <Btn type="submit" disabled={busy || (mode === 'recuperar' && cooldown > 0)} className="w-full">
+            {busy ? '…' : mode === 'registro' ? 'Crear mi cuenta' : mode === 'recuperar' ? (cooldown > 0 ? `Espera ${cooldown} s` : 'Enviar enlace') : 'Entrar'}
           </Btn>
         </form>
 

@@ -31,8 +31,14 @@ export default function ResetPassword() {
     if (pw !== pw2) return setError('Las dos contraseñas no coinciden.');
     setBusy(true);
     try {
-      await setNewPassword(pw);
+      const email = await setNewPassword(pw);
+      try {
+        sessionStorage.setItem('avodah.afterReset', JSON.stringify({ email }));
+      } catch {
+        /* sin sessionStorage: solo se pierde el correo prellenado */
+      }
       setState('done');
+      setTimeout(goToLogin, 2500);
     } catch (err) {
       setError(err instanceof AuthError ? err.message : 'No se pudo cambiar la contraseña.');
     } finally {

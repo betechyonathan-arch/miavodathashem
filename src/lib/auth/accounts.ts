@@ -287,9 +287,11 @@ export async function hasRecoverySession(): Promise<boolean> {
 }
 
 /** Cambia la contraseña con la sesión de recuperación y cierra esa sesión: se entra con la nueva. */
-export async function setNewPassword(password: string): Promise<void> {
+export async function setNewPassword(password: string): Promise<string> {
   if (password.length < MIN_PASSWORD) throw new AuthError(`La contraseña debe tener al menos ${MIN_PASSWORD} caracteres.`);
   if (!supabase) throw new AuthError('Falta el servidor.');
+  const { data: who } = await supabase.auth.getUser();
+  const email = who.user?.email ?? '';
   const { error } = await supabase.auth.updateUser({ password });
   if (error) {
     if (/different from the old/i.test(error.message)) throw new AuthError('Elige una contraseña distinta a la anterior.');
@@ -298,4 +300,5 @@ export async function setNewPassword(password: string): Promise<void> {
   }
   await supabase.auth.signOut();
   clearSession();
+  return email;
 }
