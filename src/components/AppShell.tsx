@@ -31,6 +31,14 @@ const NAV_RIGHT = [
   { to: '/menu', he: 'מפתח', es: 'Menú' },
 ];
 
+/** ¿Es un campo donde se escribe (y por eso se abre el teclado del teléfono)? */
+function isTextField(el: EventTarget | null): boolean {
+  if (!(el instanceof HTMLElement)) return false;
+  if (el.tagName === 'TEXTAREA' || el.isContentEditable) return true;
+  if (el.tagName !== 'INPUT') return false;
+  return !['checkbox', 'radio', 'button', 'submit', 'reset', 'range', 'color', 'file', 'image'].includes((el as HTMLInputElement).type);
+}
+
 export default function AppShell() {
   const wide = useLocation().pathname.startsWith('/admin'); // el panel de admin usa más ancho
   const day = useZury((s) => s.day);
@@ -38,6 +46,9 @@ export default function AppShell() {
   const syncStatus = useSync((s) => s.status);
   const [qrOpen, setQrOpen] = useState(false);
   const [qtOpen, setQtOpen] = useState(false);
+  // Mientras se escribe, el teclado del teléfono abre y la barra de abajo se sube encima de él y
+  // tapa lo que se escribe (por ejemplo, el buscador de Historia). Se esconde y vuelve al terminar.
+  const [typing, setTyping] = useState(false);
   const navigate = useNavigate();
   const sync = SYNC_UI[syncStatus] ?? SYNC_UI.disabled;
 
@@ -50,6 +61,21 @@ export default function AppShell() {
     return () => {
       window.removeEventListener('zury:quick-register', open);
       window.removeEventListener('zury:quick-tap', openTap);
+    };
+  }, []);
+
+  useEffect(() => {
+    const onIn = (e: FocusEvent) => {
+      if (isTextField(e.target)) setTyping(true);
+    };
+    const onOut = (e: FocusEvent) => {
+      if (!isTextField(e.relatedTarget)) setTyping(false); // si pasa a otro campo, sigue escondida
+    };
+    document.addEventListener('focusin', onIn);
+    document.addEventListener('focusout', onOut);
+    return () => {
+      document.removeEventListener('focusin', onIn);
+      document.removeEventListener('focusout', onOut);
     };
   }, []);
 
@@ -125,32 +151,34 @@ export default function AppShell() {
       </main>
 
       {/* Bottom nav con botón central + REGISTRAR */}
-      <nav className="safe-bottom fixed inset-x-0 bottom-0 z-30 mx-auto flex max-w-lg items-stretch justify-around gap-1 border-t border-line bg-bg/95 px-2 pb-1 pt-1.5 backdrop-blur">
-        {NAV_LEFT.map((n) => (
-          <NavLink key={n.to} to={n.to} end={n.end} className={navItem}>
-            <span className="hebrew text-[15px] leading-none">{n.he}</span>
-            <span className="text-[9px] uppercase tracking-[0.12em] leading-none">{n.es}</span>
-          </NavLink>
-        ))}
+      {!typing && (
+        <nav className="safe-bottom fixed inset-x-0 bottom-0 z-30 mx-auto flex max-w-lg items-stretch justify-around gap-1 border-t border-line bg-bg/95 px-2 pb-1 pt-1.5 backdrop-blur">
+          {NAV_LEFT.map((n) => (
+            <NavLink key={n.to} to={n.to} end={n.end} className={navItem}>
+              <span className="hebrew text-[15px] leading-none">{n.he}</span>
+              <span className="text-[9px] uppercase tracking-[0.12em] leading-none">{n.es}</span>
+            </NavLink>
+          ))}
 
-        <button
-          onClick={() => setQrOpen(true)}
-          className="relative -top-4 flex flex-col items-center"
-          aria-label="Registrar"
-        >
-          <span className="grid h-14 w-14 place-items-center rounded-full border border-bg bg-gold font-serif text-2xl text-[#1a140a] shadow-[0_4px_16px_rgba(0,0,0,0.28)] ring-1 ring-[color-mix(in_srgb,var(--gold)_40%,#000)] transition-[filter] duration-300 active:brightness-95">
-            +
-          </span>
-          <span className="hebrew mt-0.5 text-[11px] leading-none text-gold">רישום</span>
-        </button>
+          <button
+            onClick={() => setQrOpen(true)}
+            className="relative -top-4 flex flex-col items-center"
+            aria-label="Registrar"
+          >
+            <span className="grid h-14 w-14 place-items-center rounded-full border border-bg bg-gold font-serif text-2xl text-[#1a140a] shadow-[0_4px_16px_rgba(0,0,0,0.28)] ring-1 ring-[color-mix(in_srgb,var(--gold)_40%,#000)] transition-[filter] duration-300 active:brightness-95">
+              +
+            </span>
+            <span className="hebrew mt-0.5 text-[11px] leading-none text-gold">רישום</span>
+          </button>
 
-        {NAV_RIGHT.map((n) => (
-          <NavLink key={n.to} to={n.to} className={navItem}>
-            <span className="hebrew text-[15px] leading-none">{n.he}</span>
-            <span className="text-[9px] uppercase tracking-[0.12em] leading-none">{n.es}</span>
-          </NavLink>
-        ))}
-      </nav>
+          {NAV_RIGHT.map((n) => (
+            <NavLink key={n.to} to={n.to} className={navItem}>
+              <span className="hebrew text-[15px] leading-none">{n.he}</span>
+              <span className="text-[9px] uppercase tracking-[0.12em] leading-none">{n.es}</span>
+            </NavLink>
+          ))}
+        </nav>
+      )}
 
       <QuickRegister open={qrOpen} onClose={() => setQrOpen(false)} onSaved={() => navigate('/')} />
       <QuickTap open={qtOpen} onClose={() => setQtOpen(false)} onSaved={() => navigate('/')} />
