@@ -199,7 +199,9 @@ type EventFilter = 'todo' | 'actividad' | 'registros' | 'entradas' | 'aportes' |
  */
 export default function Admin() {
   const me = getSession();
-  const [tab, setTab] = useState<Tab>('resumen');
+  const [tab, setTab] = useState<Tab>(() =>
+    new URLSearchParams(window.location.search).get('t') === 'aportes' ? 'aportes' : 'resumen',
+  );
   const [users, setUsers] = useState<AdminUser[] | null>(null);
   const [extended, setExtended] = useState(true);
   const [events, setEvents] = useState<AdminEvent[] | null>(null);

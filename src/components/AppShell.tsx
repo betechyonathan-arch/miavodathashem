@@ -8,6 +8,9 @@ import QuickTap from './QuickTap';
 import ErrorBoundary from './ErrorBoundary';
 import NewDayBanner from './NewDayBanner';
 import MussarLine from './MussarLine';
+import AporteAlert from './AporteAlert';
+import { getSession } from '../lib/auth/session';
+import { backendConfigured } from '../lib/supabase';
 
 const SYNC_UI: Record<string, { icon: string; label: string; cls: string }> = {
   disabled: { icon: '', label: '', cls: '' },
@@ -112,6 +115,7 @@ export default function AppShell() {
       </header>
 
       <NewDayBanner />
+      {backendConfigured && getSession()?.isAdmin && <AporteAlert />}
 
       <main className="flex-1 px-4 pb-28 pt-4">
         <ErrorBoundary label="esta pantalla">
