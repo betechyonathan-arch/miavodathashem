@@ -60,6 +60,9 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,jpeg,woff2}'],
         navigateFallback: 'index.html',
+        // Handlers de notificaciones push (ver public/push-sw.js): se inyectan dentro del
+        // service worker que genera Workbox, sin tocar su lógica de caché ni de actualización.
+        importScripts: ['push-sw.js'],
       },
     }),
   ],

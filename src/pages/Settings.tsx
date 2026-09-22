@@ -11,6 +11,7 @@ import { syncNow } from '../lib/sync/cloud';
 import { Btn, Card, Field, SectionTitle, inputCls } from '../components/ui';
 import AiSettingsCard from '../components/AiSettingsCard';
 import RemindersCard from '../components/RemindersCard';
+import PushSettingsCard from '../components/PushSettingsCard';
 import { InstallSection } from '../components/InstallApp';
 import { SCHEMA_VERSION } from '../lib/db/schema';
 import { getSession } from '../lib/auth/session';
@@ -395,6 +396,8 @@ export default function Settings() {
       <section id="recordatorios" className="scroll-mt-24 rounded-2xl">
         <RemindersCard settings={settings} set={set} />
       </section>
+
+      <PushSettingsCard />
 
       <InstallSection />
 

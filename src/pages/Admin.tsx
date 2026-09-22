@@ -25,6 +25,7 @@ import {
 } from '../lib/aportes';
 import { AporteForm } from '../components/Aportes';
 import { deleteAviso, listAllAvisos, saveAviso, type Aviso } from '../lib/avisos';
+import { sendPushToAll } from '../lib/pushAdmin';
 import {
   EncuestaError,
   deleteEncuesta,
@@ -282,6 +283,7 @@ export default function Admin() {
   const [encDraft, setEncDraft] = useState<EncuestaInput>(emptyEnc);
   const [verRespuestas, setVerRespuestas] = useState<string | null>(null);
   const [avisoDraft, setAvisoDraft] = useState<{ id?: string; title: string; body: string }>({ title: '', body: '' });
+  const [avisoNotifica, setAvisoNotifica] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const [error, setError] = useState('');
   const [msg, setMsg] = useState('');
@@ -961,14 +963,31 @@ export default function Admin() {
                     placeholder="Escribe aquí lo que quieres decirles a todos…"
                   />
                 </Field>
+                <label className="flex items-start gap-3 text-[13px] leading-snug text-ink-soft">
+                  <input type="checkbox" className="mt-1 h-4 w-4" checked={avisoNotifica} onChange={(e) => setAvisoNotifica(e.target.checked)} />
+                  <span>
+                    También como <strong className="text-ink">notificación</strong> (suena en el teléfono de quien la activó, aunque tenga la
+                    app cerrada). El aviso, arriba en «Hoy», siempre lo ven todos, lo marques o no.
+                  </span>
+                </label>
                 <div className="flex flex-wrap gap-2">
                   <Btn
                     disabled={busy || avisoDraft.body.trim().length < 1}
                     onClick={() =>
                       run(async () => {
-                        await saveAviso({ id: avisoDraft.id, title: avisoDraft.title.trim(), body: avisoDraft.body.trim(), active: true });
+                        const title = avisoDraft.title.trim();
+                        const body = avisoDraft.body.trim();
+                        await saveAviso({ id: avisoDraft.id, title, body, active: true });
+                        if (avisoNotifica) {
+                          try {
+                            await sendPushToAll(title || 'Avodah', body);
+                          } catch {
+                            /* el aviso ya quedó publicado; si la notificación falla, no se pierde eso */
+                          }
+                        }
                         setAvisoDraft({ title: '', body: '' });
-                      }, avisoDraft.id ? 'Aviso actualizado.' : 'Aviso publicado: ya lo ven todos.')
+                        setAvisoNotifica(false);
+                      }, avisoDraft.id ? 'Aviso actualizado.' : avisoNotifica ? 'Aviso publicado y notificación enviada.' : 'Aviso publicado: ya lo ven todos.')
                     }
                   >
                     {avisoDraft.id ? 'Guardar cambios' : 'Publicar aviso'}
