@@ -3,12 +3,28 @@ import { EncuestaError, fetchEncuestas, submitRespuesta, type PublicEncuesta } f
 import { backendConfigured } from '../lib/supabase';
 import { Btn, Card } from './ui';
 
-const TIMEOUT_MS = 6000; // sin conexión o muy lento: se deja pasar, no se atrapa a nadie sin internet
+const REINTENTOS = 4;
+const ESPERA_MS = 2500; // entre reintentos, si el anterior falló de verdad (no solo tardó)
+
+/**
+ * Consulta hasta REINTENTOS veces, con espera entre cada una, pero SOLO si la vez anterior
+ * falló de verdad (error de red). Una respuesta lenta que sí llega no cuenta como fallo: se
+ * espera lo que haga falta, en vez de rendirse por un límite de tiempo arbitrario.
+ */
+async function consultarConReintentos(): Promise<PublicEncuesta[] | null> {
+  for (let i = 0; i < REINTENTOS; i++) {
+    const list = await fetchEncuestas();
+    if (list) return list;
+    if (i < REINTENTOS - 1) await new Promise((r) => window.setTimeout(r, ESPERA_MS));
+  }
+  return null;
+}
 
 /**
  * Puerta obligatoria: si hay una encuesta activa sin responder, sale ANTES de todo lo demás
- * (antes de «Hoy») y no se puede saltar. Se contesta y se sigue. Sin conexión, o si tarda mucho
- * en responder el servidor, se deja pasar (no hay forma de exigir algo que no se puede consultar).
+ * (antes de «Hoy») y no se puede saltar. Se contesta y se sigue. Solo se deja pasar sin responder
+ * si de verdad no hay forma de consultar al servidor (varios intentos de red fallidos seguidos):
+ * no hay manera de exigir algo que no se puede ni preguntar.
  */
 export default function EncuestaGate({ onDone }: { onDone: () => void }) {
   const [pending, setPending] = useState<PublicEncuesta[] | null>(null); // null = todavía verificando
@@ -19,12 +35,10 @@ export default function EncuestaGate({ onDone }: { onDone: () => void }) {
       return;
     }
     let alive = true;
-    const timer = window.setTimeout(() => alive && onDone(), TIMEOUT_MS);
-    fetchEncuestas().then((list) => {
-      window.clearTimeout(timer);
+    consultarConReintentos().then((list) => {
       if (!alive) return;
       if (!list) {
-        onDone(); // no se pudo consultar: no se bloquea a nadie por eso
+        onDone(); // varios intentos de red fallidos: no se atrapa a nadie sin conexión
         return;
       }
       const p = list.filter((e) => e.active && !e.respondi);
@@ -33,12 +47,19 @@ export default function EncuestaGate({ onDone }: { onDone: () => void }) {
     });
     return () => {
       alive = false;
-      window.clearTimeout(timer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (!pending || pending.length === 0) return null;
+  if (pending === null) {
+    // Verificando (puede tardar si la conexión anda mal: se reintenta antes de rendirse).
+    return (
+      <div className="fixed inset-0 z-[92] grid place-items-center bg-bg">
+        <span className="hebrew text-2xl text-gold">טוען…</span>
+      </div>
+    );
+  }
+  if (pending.length === 0) return null;
   const e = pending[0];
 
   return (
