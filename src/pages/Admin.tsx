@@ -26,6 +26,16 @@ import {
 import { AporteForm } from '../components/Aportes';
 import { deleteAviso, listAllAvisos, saveAviso, type Aviso } from '../lib/avisos';
 import {
+  EncuestaError,
+  deleteEncuesta,
+  fetchEncuestas,
+  listRespuestas,
+  saveEncuesta,
+  type EncuestaInput,
+  type PublicEncuesta,
+  type Respuesta,
+} from '../lib/encuestas';
+import {
   COMUNIDAD_AREAS,
   deleteComunidad,
   endsLabel,
@@ -79,6 +89,38 @@ function dayLabel(iso: string, now: number): string {
   if (diff === 0) return 'Hoy';
   if (diff === 1) return 'Ayer';
   return d.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
+}
+
+/** Formulario en blanco de una encuesta. Por defecto, de escala 1-10. */
+const emptyEnc = (): EncuestaInput => ({ title: '', description: '', kind: 'escala', scale_min: 1, scale_max: 10, active: true });
+
+/** Solo admin: la lista de quién respondió qué, bajo una encuesta ya abierta en la pestaña. */
+function RespuestasList({ encuestaId }: { encuestaId: string }) {
+  const [rows, setRows] = useState<Respuesta[] | null>(null);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    let alive = true;
+    listRespuestas(encuestaId)
+      .then((r) => alive && setRows(r))
+      .catch((e) => alive && setError(e instanceof EncuestaError ? e.message : 'No se pudo cargar.'));
+    return () => {
+      alive = false;
+    };
+  }, [encuestaId]);
+
+  if (error) return <p className="border-t border-line pt-3 text-[13px] text-[var(--danger)]">{error}</p>;
+  if (!rows) return <p className="border-t border-line pt-3 text-[13px] text-ink-faint">Cargando respuestas…</p>;
+  if (rows.length === 0) return <p className="border-t border-line pt-3 text-[13px] text-ink-faint">Nadie ha respondido todavía.</p>;
+  return (
+    <div className="space-y-1.5 border-t border-line pt-3">
+      {rows.map((r) => (
+        <div key={r.user_id} className="flex items-center justify-between gap-3 text-[13px]">
+          <span className="min-w-0 truncate text-ink-soft">{r.full_name || r.email}</span>
+          <span className="shrink-0 text-ink">{r.valor_num ?? r.valor_texto}</span>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 /** Formulario en blanco de una kabalá para todos: por defecto dura dos semanas. */
@@ -213,7 +255,7 @@ const chip = (on: boolean) =>
 
 /* ───────────────────────────── Página ───────────────────────────── */
 
-type Tab = 'resumen' | 'personas' | 'aportes' | 'avisos' | 'kabalot' | 'actividad';
+type Tab = 'resumen' | 'personas' | 'aportes' | 'avisos' | 'kabalot' | 'encuestas' | 'actividad';
 type Filter = 'todas' | 'en_linea' | 'nuevas' | 'admins' | 'desactivadas';
 type Sort = 'recientes' | 'ultima' | 'nombre' | 'entradas';
 type EventFilter = 'todo' | 'actividad' | 'registros' | 'entradas' | 'aportes' | 'admin';
@@ -236,6 +278,9 @@ export default function Admin() {
   const [avisos, setAvisos] = useState<Aviso[] | null>(null);
   const [kabalotCom, setKabalotCom] = useState<KabalaComunidad[] | null>(null);
   const [kabDraft, setKabDraft] = useState<KabalaComunidadInput>(emptyKab);
+  const [encuestas, setEncuestas] = useState<PublicEncuesta[] | null>(null);
+  const [encDraft, setEncDraft] = useState<EncuestaInput>(emptyEnc);
+  const [verRespuestas, setVerRespuestas] = useState<string | null>(null);
   const [avisoDraft, setAvisoDraft] = useState<{ id?: string; title: string; body: string }>({ title: '', body: '' });
   const [now, setNow] = useState(() => Date.now());
   const [error, setError] = useState('');
@@ -255,17 +300,19 @@ export default function Admin() {
         setUsers(d.users);
         setEvents(d.events);
         setAportes(demoAportes());
+        setEncuestas([{ id: 'e-1', title: 'Del 1 al 10, ¿qué tanto...?', description: '', kind: 'escala', scale_min: 1, scale_max: 10, active: true, respuestas: 12, promedio: 7.4, respondi: false, mi_valor_num: null, mi_valor_texto: null }]);
         setKabalotCom([{ id: 'kc-1', title: 'No hablar lashón hará de la persona que más me cae mal', he: 'שְׁמִירַת הַלָּשׁוֹן', blurb: 'Hasta después de Sucot, sin lashón hará de esa persona.', kavana: '', subject_label: '', pasuk_he: '', pasuk_es: '', pasuk_ref: '', kind: 'cuidar', area: 'speech', ends_on: '2026-10-04', active: true, aceptaron: 42, acepte: false }]);
         setAvisos([{ id: 'av-1', title: 'Shabat Shalom', body: 'Que tengan un Shabat de mucha luz. Recuerden encender las velas a tiempo.', active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }]);
         setExtended(true);
       } else {
-        const [u, e, a, av, kc] = await Promise.all([listUsers(), listEvents(), listAll(), listAllAvisos(), fetchComunidad()]);
+        const [u, e, a, av, kc, enc] = await Promise.all([listUsers(), listEvents(), listAll(), listAllAvisos(), fetchComunidad(), fetchEncuestas()]);
         setUsers(u.users);
         setExtended(u.extended);
         setEvents(e);
         setAportes(a);
         setAvisos(av);
         setKabalotCom(kc);
+        setEncuestas(enc);
       }
       setNow(Date.now());
     } catch (e) {
@@ -423,11 +470,13 @@ export default function Admin() {
         return `${actor} rechazó un aporte de ${name}`;
       case 'kabala_aceptada':
         return `${name} aceptó la kabalá «${e.detail.kabala ?? ''}»`;
+      case 'encuesta_respondida':
+        return `${name} respondió la encuesta «${e.detail.encuesta ?? ''}»`;
     }
   };
 
   const dotColor = (k: EventKind) =>
-    k === 'registro' || k === 'aporte_enviado' ? 'bg-gold' : k === 'entrada' || k === 'actividad' || k === 'aporte_aprobado' || k === 'kabala_aceptada' ? 'bg-[var(--success)]' : k === 'aporte_rechazado' ? 'bg-[var(--danger)]' : k === 'cuenta_borrada' || k === 'cuenta_desactivada' ? 'bg-[var(--danger)]' : 'bg-ink-faint';
+    k === 'registro' || k === 'aporte_enviado' ? 'bg-gold' : k === 'entrada' || k === 'actividad' || k === 'aporte_aprobado' || k === 'kabala_aceptada' || k === 'encuesta_respondida' ? 'bg-[var(--success)]' : k === 'aporte_rechazado' ? 'bg-[var(--danger)]' : k === 'cuenta_borrada' || k === 'cuenta_desactivada' ? 'bg-[var(--danger)]' : 'bg-ink-faint';
 
   const pending = (aportes ?? []).filter((a) => a.status === 'pendiente');
   const aporteAuthor = (a: AporteRow) => (a.author_id ? who(a.author_id) : a.author_name || 'Alguien');
@@ -438,6 +487,7 @@ export default function Admin() {
     ['aportes', `Aportes${pending.length ? ` (${pending.length})` : ''}`],
     ['avisos', 'Avisos'],
     ['kabalot', 'Kabalot'],
+    ['encuestas', 'Encuestas'],
     ['actividad', 'Actividad'],
   ];
 
@@ -468,7 +518,7 @@ export default function Admin() {
       )}
 
       {/* Pestañas grandes */}
-      <div className="grid grid-cols-2 gap-2 rounded-2xl border border-line bg-raised p-1.5 sm:grid-cols-6">
+      <div className="grid grid-cols-2 gap-2 rounded-2xl border border-line bg-raised p-1.5 sm:grid-cols-7">
         {TABS.map(([id, label]) => (
           <button
             key={id}
@@ -1104,6 +1154,122 @@ export default function Admin() {
                         Borrar
                       </Btn>
                     </div>
+                  </Card>
+                ))}
+              </section>
+            </>
+          )}
+        </div>
+      )}
+
+      {users && tab === 'encuestas' && (
+        <div className="space-y-6">
+          {encuestas === null ? (
+            <Card className="border-[var(--danger)] p-4 text-[14px] leading-relaxed text-ink">
+              <strong>Falta activar las encuestas.</strong> Pega <code className="text-gold">supabase/encuestas.sql</code> en el Editor SQL de
+              Supabase y pulsa Run.
+            </Card>
+          ) : (
+            <>
+              <Card className="space-y-4 p-5">
+                <div>
+                  <h2 className="text-xl text-ink">{encDraft.id ? 'Editar encuesta' : 'Nueva encuesta'}</h2>
+                  <p className="mt-1 text-[13px] leading-relaxed text-ink-faint">
+                    Sale en «Hoy» para todas las personas. Es anónima para ellas: solo tú ves quién respondió qué.
+                  </p>
+                </div>
+                <Field label="Título">
+                  <input className={inputCls + ' !py-3'} value={encDraft.title} maxLength={200} onChange={(e) => setEncDraft({ ...encDraft, title: e.target.value })} placeholder="Por ejemplo: Del 1 al 10, ¿qué tanto...?" />
+                </Field>
+                <Field label="Explicación (opcional)">
+                  <textarea className={inputCls + ' min-h-[5rem]'} value={encDraft.description} maxLength={500} onChange={(e) => setEncDraft({ ...encDraft, description: e.target.value })} />
+                </Field>
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <Field label="Tipo">
+                    <select className={inputCls + ' !py-3'} value={encDraft.kind} onChange={(e) => setEncDraft({ ...encDraft, kind: e.target.value as 'escala' | 'texto' })}>
+                      <option value="escala">Escala (números)</option>
+                      <option value="texto">Texto libre</option>
+                    </select>
+                  </Field>
+                  {encDraft.kind === 'escala' && (
+                    <>
+                      <Field label="Del número">
+                        <input type="number" className={inputCls + ' !py-3'} value={encDraft.scale_min} onChange={(e) => setEncDraft({ ...encDraft, scale_min: Number(e.target.value) })} />
+                      </Field>
+                      <Field label="Al número">
+                        <input type="number" className={inputCls + ' !py-3'} value={encDraft.scale_max} onChange={(e) => setEncDraft({ ...encDraft, scale_max: Number(e.target.value) })} />
+                      </Field>
+                    </>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Btn
+                    disabled={busy || encDraft.title.trim().length < 3}
+                    onClick={() =>
+                      run(async () => {
+                        await saveEncuesta({ ...encDraft, active: true });
+                        setEncDraft(emptyEnc());
+                      }, encDraft.id ? 'Encuesta actualizada.' : 'Encuesta publicada: ya la ven todos.')
+                    }
+                  >
+                    {encDraft.id ? 'Guardar cambios' : 'Publicar encuesta'}
+                  </Btn>
+                  {encDraft.id && (
+                    <Btn variant="quiet" onClick={() => setEncDraft(emptyEnc())}>
+                      Cancelar
+                    </Btn>
+                  )}
+                </div>
+              </Card>
+
+              <section className="space-y-3">
+                <h2 className="text-xl text-ink">Encuestas ({encuestas.length})</h2>
+                {encuestas.length === 0 && <Card className="p-5 text-[15px] text-ink-faint">Todavía no hay encuestas.</Card>}
+                {encuestas.map((e) => (
+                  <Card key={e.id} className={`space-y-3 p-5 ${e.active ? 'border-gold' : 'opacity-70'}`}>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {e.active ? <Badge tone="green">Abierta</Badge> : <Badge tone="muted">Cerrada</Badge>}
+                      <Badge tone="gold">{plural(e.respuestas, 'respuesta', 'respuestas')}</Badge>
+                      {e.kind === 'escala' && e.promedio != null && <span className="text-[13px] text-ink-faint">promedio {e.promedio}</span>}
+                    </div>
+                    <h3 className="text-[18px] text-ink">{e.title}</h3>
+                    {e.description && <p className="text-[14px] leading-relaxed text-ink-soft">{e.description}</p>}
+                    <div className="flex flex-wrap gap-2 border-t border-line pt-3">
+                      <Btn
+                        variant="ghost"
+                        disabled={busy}
+                        onClick={() => {
+                          setEncDraft({ id: e.id, title: e.title, description: e.description, kind: e.kind, scale_min: e.scale_min, scale_max: e.scale_max, active: e.active });
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                      >
+                        Editar
+                      </Btn>
+                      <Btn
+                        variant="ghost"
+                        disabled={busy}
+                        onClick={() => run(() => saveEncuesta({ id: e.id, title: e.title, description: e.description, kind: e.kind, scale_min: e.scale_min, scale_max: e.scale_max, active: !e.active }), e.active ? 'Encuesta cerrada.' : 'Encuesta abierta otra vez.')}
+                      >
+                        {e.active ? 'Cerrar' : 'Abrir'}
+                      </Btn>
+                      <Btn
+                        variant="ghost"
+                        disabled={busy}
+                        onClick={() => setVerRespuestas(verRespuestas === e.id ? null : e.id)}
+                      >
+                        {verRespuestas === e.id ? 'Ocultar respuestas' : 'Ver quién respondió qué'}
+                      </Btn>
+                      <Btn
+                        variant="danger"
+                        disabled={busy}
+                        onClick={() => {
+                          if (confirm('¿Borrar esta encuesta? También se borran todas las respuestas.')) void run(() => deleteEncuesta(e.id), 'Encuesta borrada.');
+                        }}
+                      >
+                        Borrar
+                      </Btn>
+                    </div>
+                    {verRespuestas === e.id && <RespuestasList encuestaId={e.id} />}
                   </Card>
                 ))}
               </section>

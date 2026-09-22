@@ -13,6 +13,7 @@ import Kavana from './components/Kavana';
 import Welcome from './components/Welcome';
 import Guia from './components/Guia';
 import { guiaVista, marcarGuiaVista } from './lib/guia';
+import EncuestaGate from './components/EncuestaGate';
 import AppShell from './components/AppShell';
 import Dashboard from './pages/Dashboard';
 import CheckIn from './pages/CheckIn';
@@ -46,6 +47,7 @@ export default function App() {
   const [entered, setEntered] = useState(false);
   const [passedKavana, setPassedKavana] = useState(false);
   const [guideClosed, setGuideClosed] = useState(false);
+  const [surveyDone, setSurveyDone] = useState(false);
 
   useEffect(() => {
     initSwAutoUpdate();
@@ -114,6 +116,10 @@ export default function App() {
 
   // Cuenta nueva: una bienvenida que explica la app, deja clara la privacidad y sugiere una primera kabalá.
   if (settings && !settings.welcomeDoneAt) return <Welcome />;
+
+  // Encuestas obligatorias: si hay una activa sin responder, sale antes que todo lo demás y no
+  // se puede saltar. Cada vez que se abre la app se vuelve a revisar (sin conexión, se deja pasar).
+  if (!surveyDone) return <EncuestaGate onDone={() => setSurveyDone(true)} />;
 
   return (
     <Routes>

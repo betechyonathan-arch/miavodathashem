@@ -35,7 +35,8 @@ export type EventKind =
   | 'aporte_enviado'
   | 'aporte_aprobado'
   | 'aporte_rechazado'
-  | 'kabala_aceptada';
+  | 'kabala_aceptada'
+  | 'encuesta_respondida';
 
 export interface AdminEvent {
   id: number;
@@ -55,6 +56,8 @@ export interface AdminEvent {
     directo?: boolean;
     /** kabala_aceptada: el título de la kabalá para todos que aceptó. */
     kabala?: string;
+    /** encuesta_respondida: el título de la encuesta que respondió. */
+    encuesta?: string;
   };
 }
 

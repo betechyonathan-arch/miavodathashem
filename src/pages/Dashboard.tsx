@@ -22,6 +22,7 @@ import QuickRegister from '../components/QuickRegister';
 import MitzvotToday from '../components/MitzvotToday';
 import Avisos from '../components/Avisos';
 import KabalotComunidad from '../components/KabalotComunidad';
+import Encuestas from '../components/Encuestas';
 import YahrzeitToday from '../components/YahrzeitToday';
 import type { AreaId, DayRecord, Entry, Goal } from '../lib/db/schema';
 import EntryList from '../components/EntryList';
@@ -99,6 +100,9 @@ export default function Dashboard() {
     <div className="space-y-5">
       {/* Avisos del admin: hasta arriba */}
       <Avisos />
+
+      {/* Encuestas del admin: anónimas para todos, respuesta rápida */}
+      <Encuestas />
 
       {/* Kabalot para todo el público: aceptar, ver cuántos las tomaron y la pregunta de cada día */}
       <KabalotComunidad />
