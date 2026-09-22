@@ -5,6 +5,10 @@ import { KIND_LABEL, cachedFeatured, fetchFeatured, type PublicAporte } from '..
  * Splash de entrada: fondo oscuro sobrio y un botón para continuar (tocar en cualquier parte).
  * Por defecto lleva el lema. Si un admin puso un aporte de la comunidad en esta pantalla
  * (Administración → Aportes), se muestra ese texto en lugar del lema.
+ *
+ * El fondo es una foto fija de una sucá en Jerusalén de noche (public/splash-sukot.jpg) — puesta
+ * a mano por ahora, no por el sistema de aportes (que no maneja fotos). Cuando ya no aplique el
+ * tema de Sucot, se puede volver al degradado liso quitando `backgroundImage` de abajo.
  */
 export default function Splash({ onContinue }: { onContinue: () => void }) {
   // La copia guardada de la vez anterior sale al instante; la consulta la refresca para la próxima.
@@ -32,7 +36,12 @@ export default function Splash({ onContinue }: { onContinue: () => void }) {
       onClick={onContinue}
       aria-label="Avodah — לעבוד את ה׳ בכל דרכיך. Continuar"
       className="fixed inset-0 z-[100] flex flex-col items-center justify-center gap-6 px-8 text-center"
-      style={{ background: 'radial-gradient(ellipse at 50% 30%, #2a2318 0%, #0d0b07 75%)' }}
+      style={{
+        backgroundImage:
+          'linear-gradient(180deg, rgba(13,11,7,0.55) 0%, rgba(13,11,7,0.6) 45%, rgba(10,8,5,0.85) 80%, rgba(8,6,4,0.94) 100%), url(/splash-sukot.jpg)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center 30%',
+      }}
     >
       <span className="hebrew text-3xl leading-snug" style={{ color: '#e3bd6c' }}>
         לעבוד את ה׳ בכל דרכיך
