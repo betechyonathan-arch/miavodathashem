@@ -24,13 +24,12 @@ export const SPLASH_BACKGROUNDS = [
   '/splash-sukot-5.jpg',
 ];
 
-/** Una foto distinta cada día del año, sin guardar estado — así todos ven la misma en un mismo día. */
+/**
+ * Una foto al azar cada vez que se abre la app (no una por día): así se nota que van rotando sin
+ * tener que esperar a que cambie el día. Puede repetirse la misma dos veces seguidas por azar.
+ */
 export function pickSplashBackground(): string {
-  const d = new Date();
-  const startOfYear = Date.UTC(d.getFullYear(), 0, 0);
-  const today = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
-  const dayOfYear = Math.floor((today - startOfYear) / 86_400_000);
-  return SPLASH_BACKGROUNDS[dayOfYear % SPLASH_BACKGROUNDS.length];
+  return SPLASH_BACKGROUNDS[Math.floor(Math.random() * SPLASH_BACKGROUNDS.length)];
 }
 
 function loadImage(src: string): Promise<HTMLImageElement> {

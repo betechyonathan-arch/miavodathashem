@@ -9,9 +9,10 @@ import { buildSplashShareImage, pickSplashBackground, shareOrDownloadImage } fro
  * lugar del lema.
  *
  * El fondo es una de varias fotos fijas de sucot en la noche (public/splash-sukot*.jpg) — puestas
- * a mano por ahora, no por el sistema de aportes (que no maneja fotos). Rota una distinta cada
- * día (ver `pickSplashBackground`). Cuando ya no aplique el tema de Sucot, se puede volver al
- * degradado liso quitando el `<img>` de fondo de abajo.
+ * a mano por ahora, no por el sistema de aportes (que no maneja fotos). Se elige una al azar cada
+ * vez que se abre la app (ver `pickSplashBackground`), para que se note que rotan sin esperar a
+ * que cambie el día. Cuando ya no aplique el tema de Sucot, se puede volver al degradado liso
+ * quitando el fondo de abajo.
  */
 export default function Splash({ onContinue }: { onContinue: () => void }) {
   // La copia guardada de la vez anterior sale al instante; la consulta la refresca para la próxima.
