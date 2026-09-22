@@ -482,6 +482,10 @@ $$;
 -- A quien creó el reto (o admin) también le salen, aparte, las invitaciones que mandó: las
 -- pendientes ("esperando") y las que rechazaron ("rechazó"). Nunca se usa para retos públicos
 -- (ahí solo cuenta el número, ver list_retos_publicos).
+-- drop porque cambiaron las columnas de salida: create or replace no puede cambiar el tipo de
+-- retorno de una función que ya existe con otras columnas.
+drop function if exists public.list_participantes_reto(uuid, text);
+
 create or replace function public.list_participantes_reto(p_reto_id uuid, p_day_id text)
 returns table (
   user_id uuid, etiqueta text, soy_yo boolean, dias_limpios int, dias_caida int,
