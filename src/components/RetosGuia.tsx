@@ -109,7 +109,7 @@ export default function RetosGuia({ onDone }: { onDone: () => void }) {
           <span className="text-[12px] uppercase tracking-[0.16em] text-ink-faint">
             Paso {i + 1} de {PASOS.length}
           </span>
-          <button onClick={onDone} className="rounded-lg px-2 py-1 text-[13px] text-ink-faint underline underline-offset-2">
+          <button onClick={onDone} className="min-h-[44px] rounded-lg px-3 py-2 text-[14px] text-ink-faint underline underline-offset-2">
             Saltar guía
           </button>
         </div>
@@ -130,11 +130,11 @@ export default function RetosGuia({ onDone }: { onDone: () => void }) {
 
         <div className="flex gap-3 pb-2">
           {i > 0 && (
-            <Btn variant="ghost" onClick={() => setI(i - 1)} className="flex-1">
+            <Btn variant="ghost" size="lg" onClick={() => setI(i - 1)} className="flex-1">
               Atrás
             </Btn>
           )}
-          <Btn onClick={() => (ultimo ? onDone() : setI(i + 1))} className="flex-[2]">
+          <Btn size="lg" onClick={() => (ultimo ? onDone() : setI(i + 1))} className="flex-[2]">
             {ultimo ? 'Entendido' : 'Siguiente'}
           </Btn>
         </div>

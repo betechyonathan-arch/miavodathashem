@@ -156,7 +156,10 @@ end;
 $$;
 
 -- ¿Todos los participantes ACTIVOS de este reto son del mismo género? Si hay algún género nulo,
--- se trata como mixto (más prudente): mejor anónimo de más que revelar de menos.
+-- se trata como mixto (más prudente): mejor anónimo de más que revelar de menos. Con UNA sola
+-- persona activa (el creador, antes de que alguien más acepte) tampoco cuenta como "mismo
+-- género": no hay nadie más con quién compararlo todavía, y no queremos que quien tiene una
+-- invitación pendiente vea el nombre real del creador antes de decidir si acepta.
 create or replace function public.reto_mismo_genero(p_reto_id uuid)
 returns boolean
 language sql
@@ -164,7 +167,8 @@ security definer
 stable
 set search_path = public
 as $$
-  select count(distinct coalesce(pr.gender, 'x' || pp.user_id::text)) = 1
+  select count(*) >= 2
+     and count(distinct coalesce(pr.gender, 'x' || pp.user_id::text)) = 1
     from public.retos_participantes pp
     join public.profiles pr on pr.id = pp.user_id
    where pp.reto_id = p_reto_id and pp.status = 'activo';
@@ -344,6 +348,12 @@ $$;
 
 -- ───────────────────────── El enlace de cada reto ─────────────────────────
 
+-- OJO privacidad: esta pantalla se ve ANTES de aceptar el reto (es la vista previa del enlace).
+-- Nunca debe mostrar el nombre real del creador ahí — eso solo pasa DESPUÉS de unirse, y solo
+-- según la regla de list_participantes_reto (mismo género del grupo activo, o revelado mutuo).
+-- Mostrarlo aquí por una simple coincidencia de género, antes de que la persona decida algo,
+-- rompía la promesa de "siempre pregunta antes de mostrar tu nombre". El admin sí lo ve, para
+-- poder moderar sin tener que entrar al reto.
 create or replace function public.get_reto_by_code(p_code text)
 returns table (
   id uuid, title text, description text, kind text, area text, target_days int,
@@ -357,9 +367,7 @@ as $$
   select r.id, r.title, r.description, r.kind, r.area, r.target_days, r.visibility, r.status,
          coalesce((select p.status from public.retos_participantes p where p.reto_id = r.id and p.user_id = auth.uid()), 'ninguno'),
          case
-           when public.is_admin() then coalesce(nullif(pc.full_name, ''), pc.email)
-           when pc.gender is not null and pc.gender = (select gender from public.profiles where id = auth.uid())
-             then coalesce(nullif(pc.full_name, ''), 'Alguien')
+           when public.is_admin() or r.created_by = auth.uid() then coalesce(nullif(pc.full_name, ''), pc.email)
            else 'Alguien'
          end
     from public.retos r

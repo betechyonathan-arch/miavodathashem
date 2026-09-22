@@ -147,6 +147,7 @@ export function Btn({
   children,
   onClick,
   variant = 'solid',
+  size = 'md',
   className = '',
   type = 'button',
   disabled,
@@ -154,12 +155,18 @@ export function Btn({
   children: ReactNode;
   onClick?: () => void;
   variant?: 'solid' | 'ghost' | 'quiet' | 'danger';
+  /** 'lg' = objetivo táctil grande (min 52px), para secciones donde la accesibilidad importa más (p. ej. Retos). */
+  size?: 'md' | 'lg';
   className?: string;
   type?: 'button' | 'submit';
   disabled?: boolean;
 }) {
   const base =
-    'inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-[15px] font-medium transition-[filter,background-color,border-color,opacity] duration-300 disabled:opacity-40';
+    'inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-[filter,background-color,border-color,opacity] duration-300 disabled:opacity-40';
+  const sizes = {
+    md: 'px-4 py-2.5 text-[15px]',
+    lg: 'min-h-[52px] px-5 py-3.5 text-[17px]',
+  }[size];
   const styles = {
     solid: 'bg-gold text-[#1a140a] hover:brightness-105',
     ghost: 'border border-line bg-raised text-ink hover:border-gold',
@@ -167,7 +174,7 @@ export function Btn({
     danger: 'border border-[var(--danger)] text-[var(--danger)] hover:bg-[color-mix(in_srgb,var(--danger)_12%,transparent)]',
   }[variant];
   return (
-    <button type={type} onClick={onClick} disabled={disabled} className={`${base} ${styles} ${className}`}>
+    <button type={type} onClick={onClick} disabled={disabled} className={`${base} ${sizes} ${styles} ${className}`}>
       {children}
     </button>
   );

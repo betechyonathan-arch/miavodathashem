@@ -76,6 +76,7 @@ function ShareBtn({ url, text, label }: { url: string; text: string; label?: str
     <div className="flex items-center gap-2">
       <Btn
         variant="ghost"
+        size="lg"
         onClick={async () => {
           const r = await compartirUrl(url, text);
           setMsg(r === 'compartido' ? '' : r === 'copiado' ? 'Enlace copiado.' : 'No se pudo copiar.');
@@ -84,7 +85,7 @@ function ShareBtn({ url, text, label }: { url: string; text: string; label?: str
       >
         🔗 {label ?? 'Compartir enlace'}
       </Btn>
-      {msg && <span className="text-[12px] text-ink-faint">{msg}</span>}
+      {msg && <span className="text-[13px] text-ink-faint">{msg}</span>}
     </div>
   );
 }
@@ -172,12 +173,12 @@ function CrearReto({ onCreated }: { onCreated: (id: string) => void }) {
           </Field>
         </div>
         <Field label="Cuántos días">
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-2">
             {TARGET_SHORTCUTS.map((n) => (
               <button
                 key={n}
                 onClick={() => setTarget(n)}
-                className={`rounded-lg border px-3 py-1.5 text-[13px] ${target === n ? 'border-gold bg-gold text-[#1a140a]' : 'border-line bg-raised text-ink-soft'}`}
+                className={`min-h-[44px] rounded-lg border px-4 py-2 text-[15px] ${target === n ? 'border-gold bg-gold text-[#1a140a]' : 'border-line bg-raised text-ink-soft'}`}
               >
                 {n}
               </button>
@@ -186,7 +187,7 @@ function CrearReto({ onCreated }: { onCreated: (id: string) => void }) {
               type="number"
               min={1}
               max={365}
-              className={inputCls + ' !w-20'}
+              className={inputCls + ' !w-24 min-h-[44px] text-[15px]'}
               value={target}
               onChange={(e) => setTarget(Math.min(365, Math.max(1, Number(e.target.value) || 1)))}
             />
@@ -194,13 +195,13 @@ function CrearReto({ onCreated }: { onCreated: (id: string) => void }) {
         </Field>
 
         <div className="grid grid-cols-2 gap-2">
-          <button onClick={() => setVisibility('privado')} className={`rounded-xl border p-3 text-left ${visibility === 'privado' ? 'border-gold bg-[color-mix(in_srgb,var(--gold)_10%,transparent)]' : 'border-line bg-raised'}`}>
-            <div className="text-[14px] font-medium text-ink">🔒 Privado</div>
-            <div className="text-[12px] text-ink-faint">Solo quien invites. No pasa por revisión.</div>
+          <button onClick={() => setVisibility('privado')} className={`min-h-[68px] rounded-xl border p-4 text-left ${visibility === 'privado' ? 'border-gold bg-[color-mix(in_srgb,var(--gold)_10%,transparent)]' : 'border-line bg-raised'}`}>
+            <div className="text-[16px] font-medium text-ink">🔒 Privado</div>
+            <div className="text-[13px] text-ink-faint">Solo quien invites. No pasa por revisión.</div>
           </button>
-          <button onClick={() => setVisibility('publico')} className={`rounded-xl border p-3 text-left ${visibility === 'publico' ? 'border-gold bg-[color-mix(in_srgb,var(--gold)_10%,transparent)]' : 'border-line bg-raised'}`}>
-            <div className="text-[14px] font-medium text-ink">🌍 Público</div>
-            <div className="text-[12px] text-ink-faint">Cualquiera se suscribe, anónimo. Un admin lo revisa antes.</div>
+          <button onClick={() => setVisibility('publico')} className={`min-h-[68px] rounded-xl border p-4 text-left ${visibility === 'publico' ? 'border-gold bg-[color-mix(in_srgb,var(--gold)_10%,transparent)]' : 'border-line bg-raised'}`}>
+            <div className="text-[16px] font-medium text-ink">🌍 Público</div>
+            <div className="text-[13px] text-ink-faint">Cualquiera se suscribe, anónimo. Un admin lo revisa antes.</div>
           </button>
         </div>
 
@@ -210,17 +211,22 @@ function CrearReto({ onCreated }: { onCreated: (id: string) => void }) {
             hint="Busca su nombre — de cualquier género. Puedes invitar a más después, o mandar el enlace por WhatsApp. Si el reto queda entre un hombre y una mujer, se vuelve anónimo solo."
           >
             {elegido ? (
-              <div className="flex items-center justify-between rounded-xl border border-gold bg-raised px-3 py-2">
-                <span className="text-[14px] text-ink">🎯 {elegido.full_name || '(sin nombre)'}</span>
-                <button onClick={() => setElegido(null)} className="text-[12px] text-gold underline underline-offset-2">
+              <div className="flex min-h-[48px] items-center justify-between rounded-xl border border-gold bg-raised px-4 py-2.5">
+                <span className="text-[15px] text-ink">🎯 {elegido.full_name || '(sin nombre)'}</span>
+                <button onClick={() => setElegido(null)} className="min-h-[44px] px-2 text-[13px] text-gold underline underline-offset-2">
                   Quitar
                 </button>
               </div>
             ) : (
               <>
-                <input className={inputCls} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Escribe al menos 2 letras de su nombre…" />
+                <input
+                  className={inputCls + ' min-h-[48px] text-[15px]'}
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder="Escribe al menos 2 letras de su nombre…"
+                />
                 {q.trim().length >= 2 && opciones.length === 0 && (
-                  <p className="mt-1.5 text-[12px] text-ink-faint">Sin resultados con ese nombre.</p>
+                  <p className="mt-1.5 text-[13px] text-ink-faint">Sin resultados con ese nombre.</p>
                 )}
                 {opciones.length > 0 && (
                   <div className="mt-1.5 space-y-1 rounded-xl border border-line bg-raised p-1.5">
@@ -232,7 +238,7 @@ function CrearReto({ onCreated }: { onCreated: (id: string) => void }) {
                           setQ('');
                           setOpciones([]);
                         }}
-                        className="block w-full rounded-lg px-2 py-1.5 text-left text-[14px] text-ink hover:bg-[var(--bg-sunken)]"
+                        className="block min-h-[48px] w-full rounded-lg px-3 py-3 text-left text-[15px] text-ink hover:bg-[var(--bg-sunken)]"
                       >
                         {o.full_name || '(sin nombre)'}
                       </button>
@@ -245,7 +251,7 @@ function CrearReto({ onCreated }: { onCreated: (id: string) => void }) {
         )}
 
         {error && <p className="text-[13px] text-[var(--danger)]">{error}</p>}
-        <Btn disabled={busy || title.trim().length < 3 || !day} onClick={() => void crear()} className="w-full">
+        <Btn size="lg" disabled={busy || title.trim().length < 3 || !day} onClick={() => void crear()} className="w-full">
           {busy ? 'Creando…' : 'Crear reto'}
         </Btn>
       </Card>
@@ -377,7 +383,7 @@ function RetosPublicos({ onJoined }: { onJoined: (id: string) => void }) {
             {r.ya_participo ? (
               <span className="text-[13px] text-gold">✓ Ya participas</span>
             ) : (
-              <Btn disabled={busy === r.id} onClick={() => void unirme(r)}>
+              <Btn size="lg" disabled={busy === r.id} onClick={() => void unirme(r)}>
                 {busy === r.id ? 'Uniendo…' : 'Suscribirme'}
               </Btn>
             )}
@@ -531,7 +537,7 @@ export function RetoDetalle({ id, onBack }: { id: string; onBack: () => void }) 
 
   return (
     <div className="space-y-4">
-      <Btn variant="quiet" onClick={onBack}>
+      <Btn variant="quiet" size="lg" onClick={onBack}>
         ‹ Mis retos
       </Btn>
 
@@ -556,13 +562,13 @@ export function RetoDetalle({ id, onBack }: { id: string; onBack: () => void }) 
                   <div className="space-y-2">
                     <input
                       autoFocus
-                      className={inputCls}
+                      className={inputCls + ' min-h-[48px] text-[15px]'}
                       value={q}
                       onChange={(e) => setQ(e.target.value)}
                       placeholder="Escribe al menos 2 letras de su nombre…"
                     />
                     {q.trim().length >= 2 && opciones.length === 0 && (
-                      <p className="text-[12px] text-ink-faint">Sin resultados con ese nombre.</p>
+                      <p className="text-[13px] text-ink-faint">Sin resultados con ese nombre.</p>
                     )}
                     {opciones.length > 0 && (
                       <div className="space-y-1 rounded-xl border border-line bg-raised p-1.5">
@@ -571,7 +577,7 @@ export function RetoDetalle({ id, onBack }: { id: string; onBack: () => void }) 
                             key={o.user_id}
                             disabled={busy}
                             onClick={() => void invitar(o)}
-                            className="block w-full rounded-lg px-2 py-1.5 text-left text-[14px] text-ink hover:bg-[var(--bg-sunken)]"
+                            className="block min-h-[48px] w-full rounded-lg px-3 py-3 text-left text-[15px] text-ink hover:bg-[var(--bg-sunken)]"
                           >
                             {o.full_name || '(sin nombre)'}
                           </button>
@@ -580,6 +586,7 @@ export function RetoDetalle({ id, onBack }: { id: string; onBack: () => void }) 
                     )}
                     <Btn
                       variant="quiet"
+                      size="lg"
                       onClick={() => {
                         setInvitando(false);
                         setQ('');
@@ -590,7 +597,7 @@ export function RetoDetalle({ id, onBack }: { id: string; onBack: () => void }) 
                     </Btn>
                   </div>
                 ) : (
-                  <Btn variant="ghost" onClick={() => setInvitando(true)}>
+                  <Btn variant="ghost" size="lg" onClick={() => setInvitando(true)}>
                     ➕ Invitar a más gente
                   </Btn>
                 )}
@@ -602,12 +609,12 @@ export function RetoDetalle({ id, onBack }: { id: string; onBack: () => void }) 
 
       {reto.mi_estado === 'invitado' ? (
         <Card className="space-y-3 p-5">
-          <p className="text-[15px] text-ink">Te retaron a esto. ¿Aceptas?</p>
+          <p className="text-[16px] text-ink">Te retaron a esto. ¿Aceptas?</p>
           <div className="grid grid-cols-2 gap-2">
-            <Btn disabled={busy} onClick={() => void responder(true)}>
+            <Btn size="lg" disabled={busy} onClick={() => void responder(true)}>
               Aceptar
             </Btn>
-            <Btn variant="ghost" disabled={busy} onClick={() => void responder(false)}>
+            <Btn variant="ghost" size="lg" disabled={busy} onClick={() => void responder(false)}>
               Rechazar
             </Btn>
           </div>
@@ -618,25 +625,25 @@ export function RetoDetalle({ id, onBack }: { id: string; onBack: () => void }) 
             <Card className="flex items-center gap-4 p-5">
               <Ring value={Math.min(1, yo.dias_limpios / reto.target_days)} size={72} stroke={7} emoji={`${yo.dias_limpios}`} />
               <div className="min-w-0 flex-1 space-y-3">
-                <p className="text-[12px] text-ink-faint">
+                <p className="text-[13px] text-ink-faint">
                   {yo.dias_limpios} de {reto.target_days} {copy.unitPlural}
                 </p>
                 {yo.estado_hoy === null ? (
                   <>
-                    <div className="text-[15px] font-medium text-ink">Hoy, ¿cumpliste?</div>
+                    <div className="text-[16px] font-medium text-ink">Hoy, ¿cumpliste?</div>
                     <div className="grid grid-cols-2 gap-2">
-                      <Btn disabled={busy} onClick={() => void marcar('limpio')}>
+                      <Btn size="lg" disabled={busy} onClick={() => void marcar('limpio')}>
                         {copy.done}
                       </Btn>
-                      <Btn variant="ghost" disabled={busy} onClick={() => void marcar('caida')}>
+                      <Btn variant="ghost" size="lg" disabled={busy} onClick={() => void marcar('caida')}>
                         {copy.miss}
                       </Btn>
                     </div>
                   </>
                 ) : yo.estado_hoy === 'limpio' ? (
-                  <p className="text-[14px] text-[var(--success)]">{copy.doneToday}</p>
+                  <p className="text-[15px] text-[var(--success)]">{copy.doneToday}</p>
                 ) : (
-                  <p className="text-[14px] text-ink-soft">{copy.missToday}</p>
+                  <p className="text-[15px] text-ink-soft">{copy.missToday}</p>
                 )}
               </div>
             </Card>
@@ -647,15 +654,15 @@ export function RetoDetalle({ id, onBack }: { id: string; onBack: () => void }) 
               {participantes.map((p) => {
                 const activo = !p.esperando && !p.rechazo && !p.soy_yo;
                 return (
-                  <div key={p.user_id} className="space-y-1.5 px-4 py-3">
+                  <div key={p.user_id} className="space-y-2 px-4 py-3.5">
                     <div className="flex items-center justify-between gap-2">
-                      <span className={`text-[14px] ${p.rechazo ? 'text-ink-faint' : 'text-ink'}`}>{p.etiqueta}</span>
-                      <div className="flex items-center gap-3">
+                      <span className={`text-[15px] ${p.rechazo ? 'text-ink-faint' : 'text-ink'}`}>{p.etiqueta}</span>
+                      <div className="flex items-center gap-4">
                         {p.esperando && reto.es_creador && (
                           <button
                             disabled={busy}
                             onClick={() => void cancelar(p.user_id)}
-                            className="text-[11px] text-ink-faint underline underline-offset-2"
+                            className="min-h-[44px] px-1 text-[13px] text-ink-faint underline underline-offset-2"
                           >
                             Cancelar
                           </button>
@@ -663,7 +670,7 @@ export function RetoDetalle({ id, onBack }: { id: string; onBack: () => void }) 
                         {activo && (
                           <button
                             onClick={() => setReportando(reportando === p.user_id ? null : p.user_id)}
-                            className="text-[11px] text-ink-faint underline underline-offset-2"
+                            className="min-h-[44px] px-1 text-[13px] text-ink-faint underline underline-offset-2"
                           >
                             Denunciar
                           </button>
@@ -671,17 +678,17 @@ export function RetoDetalle({ id, onBack }: { id: string; onBack: () => void }) 
                       </div>
                     </div>
                     {activo && (
-                      <div className="text-[12px] text-ink-faint">
+                      <div className="text-[13px] text-ink-faint">
                         {p.dias_limpios} {copy.unitPlural} · {p.estado_hoy === 'limpio' ? 'hoy cumplió' : p.estado_hoy === 'caida' ? 'hoy no' : 'hoy: sin marcar'}
                       </div>
                     )}
-                    {p.esperando && <div className="text-[12px] text-ink-faint">Esperando respuesta…</div>}
-                    {p.rechazo && <div className="text-[12px] text-ink-faint">Rechazó la invitación.</div>}
+                    {p.esperando && <div className="text-[13px] text-ink-faint">Esperando respuesta…</div>}
+                    {p.rechazo && <div className="text-[13px] text-ink-faint">Rechazó la invitación.</div>}
                     {activo && !p.revelado && (
                       <button
                         disabled={busy}
                         onClick={() => void pedirRevelar(p.user_id, p.pedi_revelar)}
-                        className="text-left text-[11px] leading-snug text-gold underline underline-offset-2"
+                        className="min-h-[44px] py-1 text-left text-[13px] leading-snug text-gold underline underline-offset-2"
                       >
                         {p.pedi_revelar
                           ? '🔒 Esperando que también acepte revelarse · toca para retirar tu pedido'
@@ -692,8 +699,13 @@ export function RetoDetalle({ id, onBack }: { id: string; onBack: () => void }) 
                     )}
                     {reportando === p.user_id && (
                       <div className="space-y-2 rounded-lg border border-line bg-[var(--bg-sunken)] p-3">
-                        <input className={inputCls} value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="¿Qué pasó?" />
-                        <Btn disabled={busy || motivo.trim().length < 1} onClick={() => void enviarReporte(p.user_id)}>
+                        <input
+                          className={inputCls + ' min-h-[48px] text-[15px]'}
+                          value={motivo}
+                          onChange={(e) => setMotivo(e.target.value)}
+                          placeholder="¿Qué pasó?"
+                        />
+                        <Btn size="lg" disabled={busy || motivo.trim().length < 1} onClick={() => void enviarReporte(p.user_id)}>
                           Enviar denuncia
                         </Btn>
                       </div>
@@ -704,12 +716,13 @@ export function RetoDetalle({ id, onBack }: { id: string; onBack: () => void }) 
             </Card>
           )}
 
-          {msg && <p className="text-[13px] text-[var(--success)]">{msg}</p>}
-          {error && <p className="text-[13px] text-[var(--danger)]">{error}</p>}
+          {msg && <p className="text-[14px] text-[var(--success)]">{msg}</p>}
+          {error && <p className="text-[14px] text-[var(--danger)]">{error}</p>}
 
           {yo && (
             <Btn
               variant="quiet"
+              size="lg"
               onClick={() => {
                 if (confirm('¿Dejar este reto?')) void abandonarReto(id).then(onBack);
               }}
@@ -754,17 +767,17 @@ function OrganizarCadena({ onCreated, onCancel }: { onCreated: (id: string) => v
         </p>
       </div>
       <Field label="¿Para qué es esta cadena?" hint='Por ejemplo: "Por la refuá de Moshé ben Rivká"'>
-        <input className={inputCls} value={title} maxLength={140} onChange={(e) => setTitle(e.target.value)} />
+        <input className={inputCls + ' min-h-[48px] text-[15px]'} value={title} maxLength={140} onChange={(e) => setTitle(e.target.value)} />
       </Field>
       <Field label="Más detalle (opcional)">
-        <textarea className={inputCls + ' min-h-[4rem]'} value={description} maxLength={500} onChange={(e) => setDescription(e.target.value)} />
+        <textarea className={inputCls + ' min-h-[4rem] text-[15px]'} value={description} maxLength={500} onChange={(e) => setDescription(e.target.value)} />
       </Field>
       {error && <p className="text-[13px] text-[var(--danger)]">{error}</p>}
       <div className="flex flex-wrap gap-2">
-        <Btn disabled={busy || title.trim().length < 3} onClick={() => void crear()}>
+        <Btn size="lg" disabled={busy || title.trim().length < 3} onClick={() => void crear()}>
           {busy ? 'Organizando…' : 'Organizar cadena'}
         </Btn>
-        <Btn variant="quiet" onClick={onCancel}>
+        <Btn variant="quiet" size="lg" onClick={onCancel}>
           Cancelar
         </Btn>
       </div>
@@ -895,7 +908,7 @@ export function CadenaDetalle({ id, onBack }: { id: string; onBack: () => void }
 
   return (
     <div className="space-y-4">
-      <Btn variant="quiet" onClick={onBack}>
+      <Btn variant="quiet" size="lg" onClick={onBack}>
         ‹ Cadenas de Tehilim
       </Btn>
 
@@ -963,16 +976,16 @@ export function CadenaDetalle({ id, onBack }: { id: string; onBack: () => void }
 
       {eligiendo !== null && (
         <Card className="space-y-3 p-4">
-          <p className="text-[15px] text-ink">Vas a tomar el capítulo {eligiendo}</p>
-          <label className="flex items-center gap-2 text-[14px] text-ink-soft">
-            <input type="checkbox" checked={anonimo} onChange={(e) => setAnonimo(e.target.checked)} />
+          <p className="text-[16px] text-ink">Vas a tomar el capítulo {eligiendo}</p>
+          <label className="flex min-h-[44px] items-center gap-2.5 text-[15px] text-ink-soft">
+            <input type="checkbox" className="h-5 w-5" checked={anonimo} onChange={(e) => setAnonimo(e.target.checked)} />
             Anónimo (no se ve tu nombre)
           </label>
           <div className="flex flex-wrap gap-2">
-            <Btn disabled={busy} onClick={() => void tomar(eligiendo)}>
+            <Btn size="lg" disabled={busy} onClick={() => void tomar(eligiendo)}>
               Confirmar
             </Btn>
-            <Btn variant="quiet" onClick={() => setEligiendo(null)}>
+            <Btn variant="quiet" size="lg" onClick={() => setEligiendo(null)}>
               Cancelar
             </Btn>
           </div>
@@ -980,13 +993,13 @@ export function CadenaDetalle({ id, onBack }: { id: string; onBack: () => void }
       )}
 
       {capitulos?.some((c) => c.soy_yo) && (
-        <details className="text-[13px] text-ink-faint">
-          <summary className="cursor-pointer">Soltar un capítulo que tomé</summary>
+        <details className="text-[14px] text-ink-faint">
+          <summary className="cursor-pointer py-2">Soltar un capítulo que tomé</summary>
           <div className="mt-2 flex flex-wrap gap-2">
             {capitulos
               .filter((c) => c.soy_yo)
               .map((c) => (
-                <Btn key={c.perek} variant="ghost" disabled={busy} onClick={() => void soltar(c.perek)}>
+                <Btn key={c.perek} variant="ghost" size="lg" disabled={busy} onClick={() => void soltar(c.perek)}>
                   Soltar el {c.perek}
                 </Btn>
               ))}
@@ -1049,7 +1062,7 @@ export default function Retos() {
       <p className="-mt-3 text-[12px] leading-relaxed text-ink-faint">
         Retar a alguien a cuidar o hacer algo, sumarte a un reto público, u organizar una cadena de Tehilim entre todos.
       </p>
-      <div className="grid grid-cols-2 gap-1.5 rounded-xl border border-line bg-raised p-1 text-[13px] sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 rounded-xl border border-line bg-raised p-1.5 text-[15px] sm:grid-cols-4">
         {(
           [
             ['mios', '📋 Mis retos'],
@@ -1061,7 +1074,7 @@ export default function Retos() {
           <button
             key={id}
             onClick={() => setParams({ t: id })}
-            className={`rounded-lg py-2 transition-colors ${tab === id ? 'bg-gold font-medium text-[#1a140a]' : 'text-ink-soft'}`}
+            className={`min-h-[48px] rounded-lg py-2.5 transition-colors ${tab === id ? 'bg-gold font-medium text-[#1a140a]' : 'text-ink-soft'}`}
           >
             {label}
           </button>

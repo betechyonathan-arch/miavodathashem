@@ -72,10 +72,10 @@ export default function RetoInviteAlert() {
       </p>
       {error && <p className="text-[13px] text-[var(--danger)]">{error}</p>}
       <div className="grid grid-cols-2 gap-2">
-        <Btn disabled={busy === r.id || !day} onClick={() => void responder(r, true)}>
+        <Btn size="lg" disabled={busy === r.id || !day} onClick={() => void responder(r, true)}>
           Aceptar
         </Btn>
-        <Btn variant="ghost" disabled={busy === r.id} onClick={() => void responder(r, false)}>
+        <Btn variant="ghost" size="lg" disabled={busy === r.id} onClick={() => void responder(r, false)}>
           Eliminar
         </Btn>
       </div>

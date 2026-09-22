@@ -92,20 +92,20 @@ export default function RetoLink() {
         {error && <p className="text-[13px] text-[var(--danger)]">{error}</p>}
 
         {yaEstoy ? (
-          <Btn onClick={() => navigate(`/retos?ver=${reto.id}`)} className="w-full">
+          <Btn size="lg" onClick={() => navigate(`/retos?ver=${reto.id}`)} className="w-full">
             Ya participas — ver el reto
           </Btn>
         ) : reto.mi_estado === 'invitado' ? (
           <div className="grid grid-cols-2 gap-2">
-            <Btn disabled={busy} onClick={() => void responder(true)}>
+            <Btn size="lg" disabled={busy} onClick={() => void responder(true)}>
               Aceptar
             </Btn>
-            <Btn variant="ghost" disabled={busy} onClick={() => void responder(false)}>
+            <Btn variant="ghost" size="lg" disabled={busy} onClick={() => void responder(false)}>
               Rechazar
             </Btn>
           </div>
         ) : (
-          <Btn disabled={busy || !day} onClick={() => void unirme()} className="w-full">
+          <Btn size="lg" disabled={busy || !day} onClick={() => void unirme()} className="w-full">
             {busy ? 'Uniendo…' : reto.visibility === 'publico' ? 'Suscribirme (anónimo)' : 'Aceptar el reto'}
           </Btn>
         )}
