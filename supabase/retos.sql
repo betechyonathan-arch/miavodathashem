@@ -73,14 +73,34 @@ create table if not exists public.retos_reportes (
   created_at     timestamptz not null default now()
 );
 
+-- Revelar identidad en un reto mixto (anónimo por default): cada quien decide, por persona, si
+-- quiere que ESA persona vea su nombre. Solo cuando AMBOS lados de la pareja lo pidieron se
+-- muestran los nombres reales entre ellos dos — el resto del reto sigue anónimo igual. Si
+-- cualquiera de los dos retira su lado, se vuelve a ocultar.
+create table if not exists public.retos_revelar (
+  reto_id         uuid not null references public.retos(id) on delete cascade,
+  user_id         uuid not null references public.profiles(id) on delete cascade,
+  target_user_id  uuid not null references public.profiles(id) on delete cascade,
+  created_at      timestamptz not null default now(),
+  primary key (reto_id, user_id, target_user_id)
+);
+
 create index if not exists retos_participantes_user_idx on public.retos_participantes (user_id);
 create index if not exists retos_dias_reto_user_idx     on public.retos_dias (reto_id, user_id);
 create index if not exists retos_created_by_idx          on public.retos (created_by);
+create index if not exists retos_revelar_target_idx      on public.retos_revelar (reto_id, target_user_id);
 
 alter table public.retos            enable row level security;
 alter table public.retos_participantes enable row level security;
 alter table public.retos_dias        enable row level security;
 alter table public.retos_reportes    enable row level security;
+alter table public.retos_revelar     enable row level security;
+
+drop policy if exists "leer mis peticiones de revelar" on public.retos_revelar;
+create policy "leer mis peticiones de revelar"
+  on public.retos_revelar for select
+  to authenticated
+  using (user_id = auth.uid() or target_user_id = auth.uid() or public.is_admin());
 
 -- Solo lo propio (creador, o donde ya soy participante) o público aprobado; admin ve todo.
 -- Todo lo demás (quién más participa, nombres, marcas de días) pasa por funciones, nunca por
@@ -270,6 +290,32 @@ begin
 end;
 $$;
 
+-- Cancelar una invitación que mandé, mientras siga sin responder. Quien invitó (o un admin)
+-- puede retractarse; la persona invitada deja de verla del todo, como si nunca hubiera llegado.
+create or replace function public.cancelar_invitacion_reto(p_reto_id uuid, p_user_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  r record;
+begin
+  select id, created_by into r from public.retos where id = p_reto_id;
+  if r.id is null then
+    raise exception 'Ese reto ya no existe';
+  end if;
+  if r.created_by <> auth.uid() and not public.is_admin() then
+    raise exception 'Solo quien invitó puede cancelar la invitación';
+  end if;
+  delete from public.retos_participantes
+   where reto_id = p_reto_id and user_id = p_user_id and status = 'invitado';
+  if not found then
+    raise exception 'Esa invitación ya no está pendiente';
+  end if;
+end;
+$$;
+
 -- Responder una invitación directa (apareció en «Mis retos» porque alguien te invitó por nombre).
 create or replace function public.responder_invitacion_reto(p_reto_id uuid, p_aceptar boolean, p_day_id text)
 returns void
@@ -431,13 +477,16 @@ begin
 end;
 $$;
 
--- Los demás participantes activos de un reto PRIVADO: con nombre (mismo género) o anónimos
--- ("Retador 1", "Retador 2"...) si es mixto. Nunca se usa para retos públicos (ahí solo cuenta
--- el número, ver list_retos_publicos).
+-- Los demás participantes activos de un reto PRIVADO: con nombre (mismo género, o si esta
+-- pareja concreta ya se reveló mutuamente) o anónimos ("Retador 1", "Retador 2"...) si es mixto.
+-- A quien creó el reto (o admin) también le salen, aparte, las invitaciones que mandó: las
+-- pendientes ("esperando") y las que rechazaron ("rechazó"). Nunca se usa para retos públicos
+-- (ahí solo cuenta el número, ver list_retos_publicos).
 create or replace function public.list_participantes_reto(p_reto_id uuid, p_day_id text)
 returns table (
   user_id uuid, etiqueta text, soy_yo boolean, dias_limpios int, dias_caida int,
-  estado_hoy text, esperando boolean
+  estado_hoy text, esperando boolean, rechazo boolean,
+  revelado boolean, pedi_revelar boolean, me_pidio_revelar boolean
 )
 language plpgsql
 security definer
@@ -446,11 +495,13 @@ set search_path = public
 as $$
 declare
   con_nombre boolean;
+  veo_invitaciones boolean;
 begin
   if not exists (select 1 from public.retos_participantes rp where rp.reto_id = p_reto_id and rp.user_id = auth.uid()) and not public.is_admin() then
     raise exception 'No participas en ese reto';
   end if;
   con_nombre := public.reto_mismo_genero(p_reto_id) or public.is_admin();
+  veo_invitaciones := public.is_admin() or exists (select 1 from public.retos r where r.id = p_reto_id and r.created_by = auth.uid());
 
   return query
     with activos as (
@@ -461,21 +512,72 @@ begin
        where p.reto_id = p_reto_id and p.status = 'activo'
     )
     select a.user_id,
-           case when a.user_id = auth.uid() then 'Tú'
-                when con_nombre then coalesce(nullif(a.full_name, ''), 'Alguien')
-                else 'Retador ' || a.n end,
+           case
+             when a.user_id = auth.uid() then 'Tú'
+             when con_nombre then coalesce(nullif(a.full_name, ''), 'Alguien')
+             when exists (select 1 from public.retos_revelar r1 where r1.reto_id = p_reto_id and r1.user_id = auth.uid() and r1.target_user_id = a.user_id)
+              and exists (select 1 from public.retos_revelar r2 where r2.reto_id = p_reto_id and r2.user_id = a.user_id and r2.target_user_id = auth.uid())
+               then coalesce(nullif(a.full_name, ''), 'Alguien')
+             else 'Retador ' || a.n
+           end,
            a.user_id = auth.uid(),
            (select count(*)::int from public.retos_dias d where d.reto_id = p_reto_id and d.user_id = a.user_id and d.status = 'limpio'),
            (select count(*)::int from public.retos_dias d where d.reto_id = p_reto_id and d.user_id = a.user_id and d.status = 'caida'),
            (select d.status from public.retos_dias d where d.reto_id = p_reto_id and d.user_id = a.user_id and d.day_id = p_day_id),
-           false
+           false,
+           false,
+           con_nombre
+             or (exists (select 1 from public.retos_revelar r1 where r1.reto_id = p_reto_id and r1.user_id = auth.uid() and r1.target_user_id = a.user_id)
+             and exists (select 1 from public.retos_revelar r2 where r2.reto_id = p_reto_id and r2.user_id = a.user_id and r2.target_user_id = auth.uid())),
+           exists (select 1 from public.retos_revelar r1 where r1.reto_id = p_reto_id and r1.user_id = auth.uid() and r1.target_user_id = a.user_id),
+           exists (select 1 from public.retos_revelar r2 where r2.reto_id = p_reto_id and r2.user_id = a.user_id and r2.target_user_id = auth.uid())
       from activos a
     union all
-    select p.user_id, coalesce(nullif(pr.full_name, ''), 'Alguien') || ' (invitación enviada)', false, 0, 0, null, true
+    select p.user_id, coalesce(nullif(pr.full_name, ''), 'Alguien') || ' (invitación enviada)', false, 0, 0, null, true, false, false, false, false
       from public.retos_participantes p
       join public.profiles pr on pr.id = p.user_id
-     where p.reto_id = p_reto_id and p.status = 'invitado'
-       and (public.is_admin() or exists (select 1 from public.retos r where r.id = p_reto_id and r.created_by = auth.uid()));
+     where p.reto_id = p_reto_id and p.status = 'invitado' and veo_invitaciones
+    union all
+    select p.user_id, coalesce(nullif(pr.full_name, ''), 'Alguien') || ' (rechazó)', false, 0, 0, null, false, true, false, false, false
+      from public.retos_participantes p
+      join public.profiles pr on pr.id = p.user_id
+     where p.reto_id = p_reto_id and p.status = 'rechazado' and veo_invitaciones;
+end;
+$$;
+
+-- Pedir ver la identidad de otra persona del reto (o retirar el pedido). Solo cuando AMBOS lo
+-- piden entre sí se revelan los nombres — ver list_participantes_reto.
+create or replace function public.pedir_revelar_identidad(p_reto_id uuid, p_target_user uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if p_target_user = auth.uid() then
+    raise exception 'No puedes pedirte esto a ti mismo';
+  end if;
+  if not exists (select 1 from public.retos_participantes where reto_id = p_reto_id and user_id = auth.uid() and status = 'activo') then
+    raise exception 'No participas en ese reto';
+  end if;
+  if not exists (select 1 from public.retos_participantes where reto_id = p_reto_id and user_id = p_target_user and status = 'activo') then
+    raise exception 'Esa persona no participa en este reto';
+  end if;
+  insert into public.retos_revelar (reto_id, user_id, target_user_id)
+  values (p_reto_id, auth.uid(), p_target_user)
+  on conflict do nothing;
+end;
+$$;
+
+create or replace function public.quitar_peticion_revelar(p_reto_id uuid, p_target_user uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  delete from public.retos_revelar
+   where reto_id = p_reto_id and user_id = auth.uid() and target_user_id = p_target_user;
 end;
 $$;
 
@@ -637,6 +739,9 @@ $$;
 revoke all on function public.buscar_para_retar(text)                               from public, anon;
 revoke all on function public.crear_reto(text, text, text, text, int, text, text, uuid) from public, anon;
 revoke all on function public.invitar_a_reto(uuid, uuid)                            from public, anon;
+revoke all on function public.cancelar_invitacion_reto(uuid, uuid)                  from public, anon;
+revoke all on function public.pedir_revelar_identidad(uuid, uuid)                   from public, anon;
+revoke all on function public.quitar_peticion_revelar(uuid, uuid)                   from public, anon;
 revoke all on function public.responder_invitacion_reto(uuid, boolean, text)        from public, anon;
 revoke all on function public.get_reto_by_code(text)                                from public, anon;
 revoke all on function public.unirse_reto_por_link(text, text)                      from public, anon;
@@ -656,6 +761,9 @@ revoke all on function public.set_retos_bloqueado_by_email(text, boolean)       
 grant execute on function public.buscar_para_retar(text)                               to authenticated;
 grant execute on function public.crear_reto(text, text, text, text, int, text, text, uuid) to authenticated;
 grant execute on function public.invitar_a_reto(uuid, uuid)                            to authenticated;
+grant execute on function public.cancelar_invitacion_reto(uuid, uuid)                  to authenticated;
+grant execute on function public.pedir_revelar_identidad(uuid, uuid)                   to authenticated;
+grant execute on function public.quitar_peticion_revelar(uuid, uuid)                   to authenticated;
 grant execute on function public.responder_invitacion_reto(uuid, boolean, text)        to authenticated;
 grant execute on function public.get_reto_by_code(text)                                to authenticated;
 grant execute on function public.unirse_reto_por_link(text, text)                      to authenticated;

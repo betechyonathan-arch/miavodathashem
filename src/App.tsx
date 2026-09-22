@@ -13,6 +13,7 @@ import Kavana from './components/Kavana';
 import Welcome from './components/Welcome';
 import Guia from './components/Guia';
 import { guiaVista, marcarGuiaVista } from './lib/guia';
+import RetosGuia from './components/RetosGuia';
 import EncuestaGate from './components/EncuestaGate';
 import AppShell from './components/AppShell';
 import Dashboard from './pages/Dashboard';
@@ -40,6 +41,12 @@ import Settings from './pages/Settings';
 function GuiaDeNuevo() {
   const navigate = useNavigate();
   return <Guia onDone={() => navigate('/')} />;
+}
+
+/** «Menú → Cómo usar Retos»: esa guía otra vez, cuando la persona quiera. */
+function RetosGuiaDeNuevo() {
+  const navigate = useNavigate();
+  return <RetosGuia onDone={() => navigate('/retos')} />;
 }
 
 export default function App() {
@@ -141,6 +148,7 @@ export default function App() {
         <Route path="yehudi" element={<Yehudi />} />
         <Route path="mujer" element={<Mujer />} />
         <Route path="retos" element={<Retos />} />
+        <Route path="retos/guia" element={<RetosGuiaDeNuevo />} />
         <Route path="retos/:code" element={<RetoLink />} />
         <Route path="retos/tehilim/:code" element={<TehilimLink />} />
         <Route path="guia" element={<GuiaDeNuevo />} />

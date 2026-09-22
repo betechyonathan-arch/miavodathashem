@@ -7,12 +7,15 @@ import {
   RetoError,
   abandonarReto,
   buscarParaRetar,
+  cancelarInvitacion,
   crearReto,
   invitarAReto,
   listMisRetos,
   listParticipantesReto,
   listRetosPublicos,
   marcarDiaReto,
+  pedirRevelarIdentidad,
+  quitarPeticionRevelar,
   reportarReto,
   responderInvitacion,
   unirsePorLink,
@@ -35,6 +38,8 @@ import {
   type Capitulo,
 } from '../lib/tehilim';
 import { Btn, Card, Field, Ring, SectionTitle, inputCls } from '../components/ui';
+import RetosGuia from '../components/RetosGuia';
+import { marcarRetosGuiaVista, retosGuiaVista } from '../lib/retosGuia';
 
 const KIND_ICON: Record<'cuidar' | 'hacer', string> = { cuidar: '🛡️', hacer: '✅' };
 
@@ -481,6 +486,34 @@ export function RetoDetalle({ id, onBack }: { id: string; onBack: () => void }) 
     }
   }
 
+  async function cancelar(userId: string) {
+    setBusy(true);
+    setError('');
+    try {
+      await cancelarInvitacion(id, userId);
+      setMsg('Invitación cancelada.');
+      await load();
+    } catch (e) {
+      setError(e instanceof RetoError ? e.message : 'No se pudo cancelar.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function pedirRevelar(userId: string, yaPedido: boolean) {
+    setBusy(true);
+    setError('');
+    try {
+      if (yaPedido) await quitarPeticionRevelar(id, userId);
+      else await pedirRevelarIdentidad(id, userId);
+      await load();
+    } catch (e) {
+      setError(e instanceof RetoError ? e.message : 'No se pudo actualizar.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function enviarReporte(reportedUser: string) {
     if (motivo.trim().length < 1) return;
     setBusy(true);
@@ -611,35 +644,63 @@ export function RetoDetalle({ id, onBack }: { id: string; onBack: () => void }) 
 
           {reto.visibility === 'privado' && participantes && (
             <Card className="divide-y divide-line p-0">
-              {participantes.map((p) => (
-                <div key={p.user_id} className="space-y-1.5 px-4 py-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[14px] text-ink">{p.etiqueta}</span>
-                    {!p.soy_yo && !p.esperando && (
+              {participantes.map((p) => {
+                const activo = !p.esperando && !p.rechazo && !p.soy_yo;
+                return (
+                  <div key={p.user_id} className="space-y-1.5 px-4 py-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className={`text-[14px] ${p.rechazo ? 'text-ink-faint' : 'text-ink'}`}>{p.etiqueta}</span>
+                      <div className="flex items-center gap-3">
+                        {p.esperando && reto.es_creador && (
+                          <button
+                            disabled={busy}
+                            onClick={() => void cancelar(p.user_id)}
+                            className="text-[11px] text-ink-faint underline underline-offset-2"
+                          >
+                            Cancelar
+                          </button>
+                        )}
+                        {activo && (
+                          <button
+                            onClick={() => setReportando(reportando === p.user_id ? null : p.user_id)}
+                            className="text-[11px] text-ink-faint underline underline-offset-2"
+                          >
+                            Denunciar
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    {activo && (
+                      <div className="text-[12px] text-ink-faint">
+                        {p.dias_limpios} {copy.unitPlural} · {p.estado_hoy === 'limpio' ? 'hoy cumplió' : p.estado_hoy === 'caida' ? 'hoy no' : 'hoy: sin marcar'}
+                      </div>
+                    )}
+                    {p.esperando && <div className="text-[12px] text-ink-faint">Esperando respuesta…</div>}
+                    {p.rechazo && <div className="text-[12px] text-ink-faint">Rechazó la invitación.</div>}
+                    {activo && !p.revelado && (
                       <button
-                        onClick={() => setReportando(reportando === p.user_id ? null : p.user_id)}
-                        className="text-[11px] text-ink-faint underline underline-offset-2"
+                        disabled={busy}
+                        onClick={() => void pedirRevelar(p.user_id, p.pedi_revelar)}
+                        className="text-left text-[11px] leading-snug text-gold underline underline-offset-2"
                       >
-                        Denunciar
+                        {p.pedi_revelar
+                          ? '🔒 Esperando que también acepte revelarse · toca para retirar tu pedido'
+                          : p.me_pidio_revelar
+                            ? '🔓 Pidió verse mutuamente — toca para aceptar tú también'
+                            : '🔒 Pedir que se vean sus nombres (solo si ambos aceptan)'}
                       </button>
                     )}
+                    {reportando === p.user_id && (
+                      <div className="space-y-2 rounded-lg border border-line bg-[var(--bg-sunken)] p-3">
+                        <input className={inputCls} value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="¿Qué pasó?" />
+                        <Btn disabled={busy || motivo.trim().length < 1} onClick={() => void enviarReporte(p.user_id)}>
+                          Enviar denuncia
+                        </Btn>
+                      </div>
+                    )}
                   </div>
-                  {!p.esperando && !p.soy_yo && (
-                    <div className="text-[12px] text-ink-faint">
-                      {p.dias_limpios} {copy.unitPlural} · {p.estado_hoy === 'limpio' ? 'hoy cumplió' : p.estado_hoy === 'caida' ? 'hoy no' : 'hoy: sin marcar'}
-                    </div>
-                  )}
-                  {p.esperando && <div className="text-[12px] text-ink-faint">Esperando respuesta…</div>}
-                  {reportando === p.user_id && (
-                    <div className="space-y-2 rounded-lg border border-line bg-[var(--bg-sunken)] p-3">
-                      <input className={inputCls} value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="¿Qué pasó?" />
-                      <Btn disabled={busy || motivo.trim().length < 1} onClick={() => void enviarReporte(p.user_id)}>
-                        Enviar denuncia
-                      </Btn>
-                    </div>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </Card>
           )}
 
@@ -943,6 +1004,9 @@ export function CadenaDetalle({ id, onBack }: { id: string; onBack: () => void }
  * con o sin nombre según el género) o públicos (anónimos, con revisión de admin).
  */
 export default function Retos() {
+  const settings = useZury((s) => s.settings);
+  const saveSettings = useZury((s) => s.saveSettings);
+  const [guideClosed, setGuideClosed] = useState(false);
   const [params, setParams] = useSearchParams();
   const t = params.get('t');
   const tab = t === 'publicos' ? 'publicos' : t === 'crear' ? 'crear' : t === 'tehilim' ? 'tehilim' : 'mios';
@@ -963,6 +1027,20 @@ export default function Retos() {
 
   if (ver) {
     return <RetoDetalle id={ver} onBack={() => setParams({ t: tab })} />;
+  }
+
+  // Guía de Retos: una sola vez, la primera vez que alguien entra a esta sección (no bloquea el
+  // resto de la app). No sale si vino directo a un reto o cadena por enlace (los casos de arriba).
+  if (settings && !settings.guideRetosDoneAt && !retosGuiaVista() && !guideClosed) {
+    return (
+      <RetosGuia
+        onDone={() => {
+          marcarRetosGuiaVista();
+          setGuideClosed(true);
+          void saveSettings({ guideRetosDoneAt: new Date().toISOString() });
+        }}
+      />
+    );
   }
 
   return (

@@ -9,6 +9,7 @@ import ErrorBoundary from './ErrorBoundary';
 import NewDayBanner from './NewDayBanner';
 import MussarLine from './MussarLine';
 import AporteAlert from './AporteAlert';
+import RetoInviteAlert from './RetoInviteAlert';
 import { getSession } from '../lib/auth/session';
 import { backendConfigured } from '../lib/supabase';
 
@@ -143,6 +144,7 @@ export default function AppShell() {
 
       <NewDayBanner />
       {backendConfigured && getSession()?.isAdmin && <AporteAlert />}
+      {backendConfigured && getSession() && <RetoInviteAlert />}
 
       <main className="flex-1 px-4 pb-28 pt-4">
         <ErrorBoundary label="esta pantalla">

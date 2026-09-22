@@ -348,6 +348,8 @@ export interface Settings {
   welcomeDoneAt?: string | null;
   /** Cuándo vio (o saltó) la guía de uso. Sale una sola vez. */
   guideDoneAt?: string | null;
+  /** Cuándo vio (o saltó) la guía de Retos. Sale una sola vez, la primera vez que entra a esa sección. */
+  guideRetosDoneAt?: string | null;
   aiEnabled: boolean; // módulo IA opcional, off por defecto
   aiProvider: 'anthropic';
   aiModel: string; // p. ej. claude-opus-5 / claude-sonnet-5 / claude-haiku-4-5

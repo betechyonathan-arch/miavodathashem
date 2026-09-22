@@ -107,6 +107,7 @@ export const DEFAULT_SETTINGS: Settings = {
   },
   welcomeDoneAt: null,
   guideDoneAt: null,
+  guideRetosDoneAt: null,
   aiEnabled: false,
   aiProvider: 'anthropic',
   aiModel: 'claude-opus-5',

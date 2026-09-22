@@ -6,8 +6,14 @@
   los vean; los privados no, salvo que alguien denuncie.
 
   Nombres: si todos los participantes activos de un reto son del mismo género, se ven los
-  nombres entre ellos; si es mixto, es anónimo para todos (nadie ve el nombre de nadie). El
-  admin siempre ve las identidades, para poder moderar.
+  nombres entre ellos; si es mixto, es anónimo para todos (nadie ve el nombre de nadie) — salvo
+  que dos personas concretas pidan revelarse mutuamente (ver `pedirRevelarIdentidad`): solo
+  cuando AMBAS lo piden se muestran sus nombres entre ELLAS DOS, el resto del reto sigue
+  anónimo. Si cualquiera retira su lado, se oculta de nuevo. El admin siempre ve las
+  identidades, para poder moderar.
+
+  Quien invita puede cancelar la invitación mientras siga sin responder (`cancelarInvitacion`).
+  Si alguien la rechaza, quien invitó lo ve marcado como "rechazó" en la lista de participantes.
 
   Lo que cada quien marca día a día en un reto (si cuidó o cayó) SOLO lo ven los demás
   participantes de ESE reto — es la única excepción a que lo personal nunca sale del
@@ -120,6 +126,12 @@ export async function invitarAReto(retoId: string, userId: string): Promise<void
   if (error) throw new RetoError(error.message);
 }
 
+/** Retractar una invitación que mandé, mientras siga sin responder. Solo quien invitó (o admin). */
+export async function cancelarInvitacion(retoId: string, userId: string): Promise<void> {
+  const { error } = await client().rpc('cancelar_invitacion_reto', { p_reto_id: retoId, p_user_id: userId });
+  if (error) throw new RetoError(error.message);
+}
+
 export async function responderInvitacion(retoId: string, aceptar: boolean, dayId: string): Promise<void> {
   const { error } = await client().rpc('responder_invitacion_reto', { p_reto_id: retoId, p_aceptar: aceptar, p_day_id: dayId });
   if (error) throw new RetoError(error.message);
@@ -159,18 +171,36 @@ export async function marcarDiaReto(retoId: string, dayId: string, status: 'limp
 
 export interface ParticipanteReto {
   user_id: string;
-  etiqueta: string; // nombre real, "Tú", "Retador N" (anónimo) o "Invitación enviada"
+  etiqueta: string; // nombre real, "Tú", "Retador N" (anónimo), "… (invitación enviada)" o "… (rechazó)"
   soy_yo: boolean;
   dias_limpios: number;
   dias_caida: number;
   estado_hoy: 'limpio' | 'caida' | null;
   esperando: boolean; // invitación mandada, todavía sin responder
+  rechazo: boolean; // rechazó la invitación (solo lo ve quien invitó, o admin)
+  revelado: boolean; // ya se ve el nombre real (mismo género, o ambos se revelaron entre sí)
+  pedi_revelar: boolean; // yo ya pedí verle su identidad a esta persona
+  me_pidio_revelar: boolean; // esta persona ya me pidió ver la mía
 }
 
 export async function listParticipantesReto(retoId: string, dayId: string): Promise<ParticipanteReto[]> {
   const { data, error } = await client().rpc('list_participantes_reto', { p_reto_id: retoId, p_day_id: dayId });
   if (error) throw new RetoError(error.message);
   return (data ?? []) as ParticipanteReto[];
+}
+
+/**
+ * Pedir ver la identidad real de otra persona del mismo reto (o retirar el pedido). Solo cuando
+ * AMBOS lo piden entre sí se revelan los nombres — mientras uno no quiera, no sale a nadie.
+ */
+export async function pedirRevelarIdentidad(retoId: string, targetUserId: string): Promise<void> {
+  const { error } = await client().rpc('pedir_revelar_identidad', { p_reto_id: retoId, p_target_user: targetUserId });
+  if (error) throw new RetoError(error.message);
+}
+
+export async function quitarPeticionRevelar(retoId: string, targetUserId: string): Promise<void> {
+  const { error } = await client().rpc('quitar_peticion_revelar', { p_reto_id: retoId, p_target_user: targetUserId });
+  if (error) throw new RetoError(error.message);
 }
 
 export async function abandonarReto(retoId: string): Promise<void> {
