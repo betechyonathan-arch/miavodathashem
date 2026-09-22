@@ -1,8 +1,9 @@
 /*
-  Retos entre usuarios: como una kabalá, pero de dos o más personas. Se invita buscando a
-  alguien de tu mismo género (ver `buscarParaRetar`) o mandando el enlace del reto por fuera de
-  la app. Quien recibe la invitación acepta o rechaza. Los públicos necesitan aprobación de un
-  admin antes de que otros los vean; los privados no, salvo que alguien denuncie.
+  Retos entre usuarios: como una kabalá, pero de dos o más personas. Se invita buscando su
+  nombre (ver `buscarParaRetar`, cualquier género — no explora una lista, hace falta escribir
+  al menos 2 letras) o mandando el enlace del reto por fuera de la app. Quien recibe la
+  invitación acepta o rechaza. Los públicos necesitan aprobación de un admin antes de que otros
+  los vean; los privados no, salvo que alguien denuncie.
 
   Nombres: si todos los participantes activos de un reto son del mismo género, se ven los
   nombres entre ellos; si es mixto, es anónimo para todos (nadie ve el nombre de nadie). El
@@ -34,9 +35,14 @@ export interface UsuarioBusqueda {
   full_name: string;
 }
 
-/** Solo personas de tu mismo género, activas, para invitarlas a un reto. Nunca el correo. */
+/**
+ * Busca por nombre para invitar a un reto (cualquier género; si el reto termina mixto, se
+ * vuelve anónimo solo). No devuelve nada con menos de 2 letras: no hay forma de "explorar" a
+ * todos los usuarios, solo de encontrar a alguien puntual.
+ */
 export async function buscarParaRetar(query: string): Promise<UsuarioBusqueda[]> {
-  const { data, error } = await client().rpc('buscar_usuarios_mismo_genero', { p_query: query });
+  if (query.trim().length < 2) return [];
+  const { data, error } = await client().rpc('buscar_para_retar', { p_query: query });
   if (error) throw new RetoError(error.message);
   return (data ?? []) as UsuarioBusqueda[];
 }

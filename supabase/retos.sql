@@ -150,33 +150,30 @@ as $$
    where pp.reto_id = p_reto_id and pp.status = 'activo';
 $$;
 
--- ───────────────────────── Buscar para retar (mismo género) ─────────────────────────
+-- ───────────────────────── Buscar para retar ─────────────────────────
 
--- Solo devuelve personas de TU MISMO género, activas, sin bloqueo de retos. Nunca el correo.
-create or replace function public.buscar_usuarios_mismo_genero(p_query text)
+-- Busca por nombre, de cualquier género (si el reto termina siendo mixto, se vuelve anónimo
+-- solo — ver reto_mismo_genero). NO se puede explorar una lista completa: hace falta escribir
+-- al menos 2 letras del nombre, para no exponer un directorio de todos los usuarios. Nunca el
+-- correo.
+drop function if exists public.buscar_usuarios_mismo_genero(text);
+
+create or replace function public.buscar_para_retar(p_query text)
 returns table (user_id uuid, full_name text)
-language plpgsql
+language sql
 security definer
 stable
 set search_path = public
 as $$
-declare
-  my_gender text;
-begin
-  select gender into my_gender from public.profiles where id = auth.uid();
-  if my_gender is null then
-    return;
-  end if;
-  return query
-    select p.id, p.full_name
-      from public.profiles p
-     where p.gender = my_gender
-       and p.id <> auth.uid()
-       and not p.disabled
-       and (nullif(trim(p_query), '') is null or p.full_name ilike '%' || trim(p_query) || '%')
-     order by p.full_name
-     limit 30;
-end;
+  select p.id, p.full_name
+    from public.profiles p
+   where auth.uid() is not null
+     and char_length(trim(coalesce(p_query, ''))) >= 2
+     and p.id <> auth.uid()
+     and not p.disabled
+     and p.full_name ilike '%' || trim(p_query) || '%'
+   order by p.full_name
+   limit 20;
 $$;
 
 -- ───────────────────────── Crear, invitar, responder ─────────────────────────
@@ -637,7 +634,7 @@ $$;
 
 -- ───────────────────────── Permisos ─────────────────────────
 
-revoke all on function public.buscar_usuarios_mismo_genero(text)                    from public, anon;
+revoke all on function public.buscar_para_retar(text)                               from public, anon;
 revoke all on function public.crear_reto(text, text, text, text, int, text, text, uuid) from public, anon;
 revoke all on function public.invitar_a_reto(uuid, uuid)                            from public, anon;
 revoke all on function public.responder_invitacion_reto(uuid, boolean, text)        from public, anon;
@@ -656,7 +653,7 @@ revoke all on function public.list_reportes_retos()                             
 revoke all on function public.resolver_reporte(uuid, boolean)                       from public, anon;
 revoke all on function public.set_retos_bloqueado_by_email(text, boolean)           from public, anon;
 
-grant execute on function public.buscar_usuarios_mismo_genero(text)                    to authenticated;
+grant execute on function public.buscar_para_retar(text)                               to authenticated;
 grant execute on function public.crear_reto(text, text, text, text, int, text, text, uuid) to authenticated;
 grant execute on function public.invitar_a_reto(uuid, uuid)                            to authenticated;
 grant execute on function public.responder_invitacion_reto(uuid, boolean, text)        to authenticated;

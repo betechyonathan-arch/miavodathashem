@@ -90,9 +90,12 @@ declare
   new_id uuid;
   code text;
 begin
-  select p.id, p.disabled into me from public.profiles p where p.id = auth.uid();
+  select p.id, p.disabled, p.retos_bloqueado into me from public.profiles p where p.id = auth.uid();
   if me.id is null or me.disabled then
     raise exception 'Necesitas una cuenta activa';
+  end if;
+  if me.retos_bloqueado then
+    raise exception 'Tu cuenta está bloqueada para participar en retos y cadenas';
   end if;
   if char_length(trim(coalesce(p_title, ''))) < 3 then
     raise exception 'Escribe para qué es la cadena';
@@ -176,6 +179,9 @@ declare
   st text;
   tomados int;
 begin
+  if (select retos_bloqueado from public.profiles where id = auth.uid()) then
+    raise exception 'Tu cuenta está bloqueada para participar en retos y cadenas';
+  end if;
   select status into st from public.cadenas_tehilim where id = p_cadena_id;
   if st is null then
     raise exception 'Esa cadena ya no existe';

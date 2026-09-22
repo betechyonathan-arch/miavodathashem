@@ -33,7 +33,9 @@ import {
   type Cadena,
   type Capitulo,
 } from '../lib/tehilim';
-import { Btn, Card, Field, SectionTitle, inputCls } from '../components/ui';
+import { Btn, Card, Field, Ring, SectionTitle, inputCls } from '../components/ui';
+
+const KIND_ICON: Record<'cuidar' | 'hacer', string> = { cuidar: '🛡️', hacer: '✅' };
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
@@ -98,13 +100,19 @@ function CrearReto({ onCreated }: { onCreated: (id: string) => void }) {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (visibility !== 'privado') return;
+    if (visibility !== 'privado' || q.trim().length < 2) {
+      setOpciones([]);
+      return;
+    }
     let alive = true;
-    buscarParaRetar(q)
-      .then((r) => alive && setOpciones(r))
-      .catch(() => alive && setOpciones([]));
+    const t = window.setTimeout(() => {
+      buscarParaRetar(q)
+        .then((r) => alive && setOpciones(r))
+        .catch(() => alive && setOpciones([]));
+    }, 300); // espera a que la persona termine de escribir antes de preguntar al servidor
     return () => {
       alive = false;
+      window.clearTimeout(t);
     };
   }, [q, visibility]);
 
@@ -181,27 +189,33 @@ function CrearReto({ onCreated }: { onCreated: (id: string) => void }) {
 
         <div className="grid grid-cols-2 gap-2">
           <button onClick={() => setVisibility('privado')} className={`rounded-xl border p-3 text-left ${visibility === 'privado' ? 'border-gold bg-[color-mix(in_srgb,var(--gold)_10%,transparent)]' : 'border-line bg-raised'}`}>
-            <div className="text-[14px] font-medium text-ink">Privado</div>
+            <div className="text-[14px] font-medium text-ink">🔒 Privado</div>
             <div className="text-[12px] text-ink-faint">Solo quien invites. No pasa por revisión.</div>
           </button>
           <button onClick={() => setVisibility('publico')} className={`rounded-xl border p-3 text-left ${visibility === 'publico' ? 'border-gold bg-[color-mix(in_srgb,var(--gold)_10%,transparent)]' : 'border-line bg-raised'}`}>
-            <div className="text-[14px] font-medium text-ink">Público</div>
+            <div className="text-[14px] font-medium text-ink">🌍 Público</div>
             <div className="text-[12px] text-ink-faint">Cualquiera se suscribe, anónimo. Un admin lo revisa antes.</div>
           </button>
         </div>
 
         {visibility === 'privado' && (
-          <Field label="Retar a alguien de una vez (opcional)" hint="Solo aparece gente de tu mismo género. Puedes invitar a más después, o mandar el enlace por WhatsApp.">
+          <Field
+            label="Retar a alguien de una vez (opcional)"
+            hint="Busca su nombre — de cualquier género. Puedes invitar a más después, o mandar el enlace por WhatsApp. Si el reto queda entre un hombre y una mujer, se vuelve anónimo solo."
+          >
             {elegido ? (
               <div className="flex items-center justify-between rounded-xl border border-gold bg-raised px-3 py-2">
-                <span className="text-[14px] text-ink">{elegido.full_name || '(sin nombre)'}</span>
+                <span className="text-[14px] text-ink">🎯 {elegido.full_name || '(sin nombre)'}</span>
                 <button onClick={() => setElegido(null)} className="text-[12px] text-gold underline underline-offset-2">
                   Quitar
                 </button>
               </div>
             ) : (
               <>
-                <input className={inputCls} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Escribe un nombre…" />
+                <input className={inputCls} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Escribe al menos 2 letras de su nombre…" />
+                {q.trim().length >= 2 && opciones.length === 0 && (
+                  <p className="mt-1.5 text-[12px] text-ink-faint">Sin resultados con ese nombre.</p>
+                )}
                 {opciones.length > 0 && (
                   <div className="mt-1.5 space-y-1 rounded-xl border border-line bg-raised p-1.5">
                     {opciones.map((o) => (
@@ -209,6 +223,7 @@ function CrearReto({ onCreated }: { onCreated: (id: string) => void }) {
                         key={o.user_id}
                         onClick={() => {
                           setElegido(o);
+                          setQ('');
                           setOpciones([]);
                         }}
                         className="block w-full rounded-lg px-2 py-1.5 text-left text-[14px] text-ink hover:bg-[var(--bg-sunken)]"
@@ -245,7 +260,9 @@ function MiRetoCard({ r, onOpen }: { r: MiReto; onOpen: () => void }) {
           {r.anonimo && <span className="rounded-md border border-line px-1.5 py-0.5 text-[10px] text-ink-faint">Anónimo</span>}
           {r.status === 'pendiente_admin' && <span className="rounded-md border border-line px-1.5 py-0.5 text-[10px] text-ink-faint">Esperando aprobación</span>}
         </div>
-        <div className="text-[16px] text-ink">{r.title}</div>
+        <div className="text-[16px] text-ink">
+          {KIND_ICON[r.kind]} {r.title}
+        </div>
         <div className="text-[12px] text-ink-faint">
           {r.target_days} {copy.unitPlural} · {plural(r.aceptaron, 'participante', 'participantes')}
         </div>
@@ -271,14 +288,19 @@ function MisRetos({ onOpen }: { onOpen: (id: string) => void }) {
   const activos = list.filter((r) => r.mi_estado === 'activo');
 
   if (list.length === 0) {
-    return <Card className="p-5 text-[14px] leading-relaxed text-ink-soft">Todavía no tienes retos. Crea uno o entra a «Retos públicos».</Card>;
+    return (
+      <Card className="space-y-1 p-5 text-center">
+        <div className="text-3xl">🤝</div>
+        <p className="text-[14px] leading-relaxed text-ink-soft">Todavía no tienes retos. Crea uno o entra a «Públicos».</p>
+      </Card>
+    );
   }
 
   return (
     <div className="space-y-5">
       {invitaciones.length > 0 && (
         <section className="space-y-2">
-          <h2 className="text-[12px] uppercase tracking-[0.16em] text-ink-faint">Te retaron</h2>
+          <h2 className="text-[12px] uppercase tracking-[0.16em] text-gold">🔥 Te retaron</h2>
           {invitaciones.map((r) => (
             <MiRetoCard key={r.id} r={r} onOpen={() => onOpen(r.id)} />
           ))}
@@ -324,7 +346,14 @@ function RetosPublicos({ onJoined }: { onJoined: (id: string) => void }) {
 
   if (error) return <p className="text-[14px] text-ink-faint">{error}</p>;
   if (!list) return <p className="text-[13px] text-ink-faint">Cargando…</p>;
-  if (list.length === 0) return <Card className="p-5 text-[14px] leading-relaxed text-ink-soft">Todavía no hay retos públicos. ¡Crea el primero!</Card>;
+  if (list.length === 0) {
+    return (
+      <Card className="space-y-1 p-5 text-center">
+        <div className="text-3xl">🌍</div>
+        <p className="text-[14px] leading-relaxed text-ink-soft">Todavía no hay retos públicos. ¡Crea el primero!</p>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-3">
@@ -332,10 +361,12 @@ function RetosPublicos({ onJoined }: { onJoined: (id: string) => void }) {
         const copy = KIND_COPY[r.kind];
         return (
           <Card key={r.id} className="space-y-2 p-4">
-            <div className="text-[16px] text-ink">{r.title}</div>
+            <div className="text-[16px] text-ink">
+              {KIND_ICON[r.kind]} {r.title}
+            </div>
             {r.description && <p className="text-[13px] leading-relaxed text-ink-soft">{r.description}</p>}
             <p className="text-[12px] text-ink-faint">
-              {r.target_days} {copy.unitPlural} · {plural(r.aceptaron, 'persona suscrita', 'personas suscritas')} · anónimo
+              {r.target_days} {copy.unitPlural} · {plural(r.aceptaron, 'persona suscrita', 'personas suscritas')} · 🎭 anónimo
             </p>
             {r.ya_participo ? (
               <span className="text-[13px] text-gold">✓ Ya participas</span>
@@ -438,7 +469,9 @@ export function RetoDetalle({ id, onBack }: { id: string; onBack: () => void }) 
           {reto.visibility === 'publico' && <span className="rounded-md border border-line px-1.5 py-0.5 text-[10px] text-ink-faint">Público</span>}
           {reto.anonimo && <span className="rounded-md border border-line px-1.5 py-0.5 text-[10px] text-ink-faint">Anónimo</span>}
         </div>
-        <h1 className="text-2xl text-ink">{reto.title}</h1>
+        <h1 className="text-2xl text-ink">
+          {KIND_ICON[reto.kind]} {reto.title}
+        </h1>
         {reto.description && <p className="text-[14px] leading-relaxed text-ink-soft">{reto.description}</p>}
         <p className="text-[13px] text-ink-faint">
           {reto.target_days} {copy.unitPlural}
@@ -463,27 +496,30 @@ export function RetoDetalle({ id, onBack }: { id: string; onBack: () => void }) 
       ) : (
         <>
           {yo && (
-            <Card className="space-y-3 p-5">
-              {yo.estado_hoy === null ? (
-                <>
-                  <div className="text-[15px] font-medium text-ink">Hoy, ¿cumpliste?</div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Btn disabled={busy} onClick={() => void marcar('limpio')}>
-                      {copy.done}
-                    </Btn>
-                    <Btn variant="ghost" disabled={busy} onClick={() => void marcar('caida')}>
-                      {copy.miss}
-                    </Btn>
-                  </div>
-                </>
-              ) : yo.estado_hoy === 'limpio' ? (
-                <p className="text-[14px] text-[var(--success)]">{copy.doneToday}</p>
-              ) : (
-                <p className="text-[14px] text-ink-soft">{copy.missToday}</p>
-              )}
-              <p className="text-[12px] text-ink-faint">
-                {yo.dias_limpios} de {reto.target_days} {copy.unitPlural}
-              </p>
+            <Card className="flex items-center gap-4 p-5">
+              <Ring value={Math.min(1, yo.dias_limpios / reto.target_days)} size={72} stroke={7} emoji={`${yo.dias_limpios}`} />
+              <div className="min-w-0 flex-1 space-y-3">
+                <p className="text-[12px] text-ink-faint">
+                  {yo.dias_limpios} de {reto.target_days} {copy.unitPlural}
+                </p>
+                {yo.estado_hoy === null ? (
+                  <>
+                    <div className="text-[15px] font-medium text-ink">Hoy, ¿cumpliste?</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Btn disabled={busy} onClick={() => void marcar('limpio')}>
+                        {copy.done}
+                      </Btn>
+                      <Btn variant="ghost" disabled={busy} onClick={() => void marcar('caida')}>
+                        {copy.miss}
+                      </Btn>
+                    </div>
+                  </>
+                ) : yo.estado_hoy === 'limpio' ? (
+                  <p className="text-[14px] text-[var(--success)]">{copy.doneToday}</p>
+                ) : (
+                  <p className="text-[14px] text-ink-soft">{copy.missToday}</p>
+                )}
+              </div>
             </Card>
           )}
 
@@ -846,13 +882,16 @@ export default function Retos() {
   return (
     <div className="space-y-4">
       <SectionTitle es="Retos" he="אתגרים" />
+      <p className="-mt-3 text-[12px] leading-relaxed text-ink-faint">
+        Retar a alguien a cuidar o hacer algo, sumarte a un reto público, u organizar una cadena de Tehilim entre todos.
+      </p>
       <div className="grid grid-cols-2 gap-1.5 rounded-xl border border-line bg-raised p-1 text-[13px] sm:grid-cols-4">
         {(
           [
-            ['mios', 'Mis retos'],
-            ['publicos', 'Públicos'],
-            ['tehilim', 'Cadenas de Tehilim'],
-            ['crear', 'Crear'],
+            ['mios', '📋 Mis retos'],
+            ['publicos', '🌍 Públicos'],
+            ['tehilim', '📖 Tehilim'],
+            ['crear', '✨ Crear'],
           ] as const
         ).map(([id, label]) => (
           <button
