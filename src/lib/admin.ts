@@ -42,7 +42,9 @@ export type EventKind =
   | 'reto_rechazado'
   | 'reto_denunciado'
   | 'reto_usuario_bloqueado'
-  | 'reto_usuario_desbloqueado';
+  | 'reto_usuario_desbloqueado'
+  | 'cadena_creada'
+  | 'cadena_completada';
 
 export interface AdminEvent {
   id: number;
@@ -67,6 +69,8 @@ export interface AdminEvent {
     /** retos: el título del reto involucrado; visibilidad si fue "publico" o "privado". */
     reto?: string;
     visibilidad?: string;
+    /** cadenas de Tehilim: el motivo/título de la cadena. */
+    cadena?: string;
   };
 }
 

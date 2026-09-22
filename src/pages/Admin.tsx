@@ -25,6 +25,7 @@ import {
 } from '../lib/aportes';
 import { AporteForm } from '../components/Aportes';
 import { deleteAviso, listAllAvisos, saveAviso, type Aviso } from '../lib/avisos';
+import { deleteCadenaAdmin, listCadenasAdmin, type CadenaAdmin } from '../lib/tehilim';
 import {
   aprobarReto,
   deleteRetoAdmin,
@@ -291,6 +292,7 @@ export default function Admin() {
   const [kabDraft, setKabDraft] = useState<KabalaComunidadInput>(emptyKab);
   const [encuestas, setEncuestas] = useState<PublicEncuesta[] | null>(null);
   const [retos, setRetos] = useState<RetoAdmin[] | null>(null);
+  const [cadenas, setCadenas] = useState<CadenaAdmin[] | null>(null);
   const [reportes, setReportes] = useState<ReporteReto[] | null>(null);
   const [bloqueoEmail, setBloqueoEmail] = useState('');
   const [encDraft, setEncDraft] = useState<EncuestaInput>(emptyEnc);
@@ -317,13 +319,14 @@ export default function Admin() {
         setAportes(demoAportes());
         setRetos([]);
         setReportes([]);
+        setCadenas([]);
         setEncuestas([{ id: 'e-1', title: 'Del 1 al 10, ¿qué tanto...?', description: '', kind: 'escala', scale_min: 1, scale_max: 10, active: true, respuestas: 12, promedio: 7.4, respondi: false, mi_valor_num: null, mi_valor_texto: null }]);
         setKabalotCom([{ id: 'kc-1', title: 'No hablar lashón hará de la persona que más me cae mal', he: 'שְׁמִירַת הַלָּשׁוֹן', blurb: 'Hasta después de Sucot, sin lashón hará de esa persona.', kavana: '', subject_label: '', pasuk_he: '', pasuk_es: '', pasuk_ref: '', kind: 'cuidar', area: 'speech', ends_on: '2026-10-04', active: true, aceptaron: 42, acepte: false }]);
         setAvisos([{ id: 'av-1', title: 'Shabat Shalom', body: 'Que tengan un Shabat de mucha luz. Recuerden encender las velas a tiempo.', active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }]);
         setExtended(true);
       } else {
-        const [u, e, a, av, kc, enc, rt, rp] = await Promise.all([
-          listUsers(), listEvents(), listAll(), listAllAvisos(), fetchComunidad(), fetchEncuestas(), listRetosAdmin(), listReportesRetos(),
+        const [u, e, a, av, kc, enc, rt, rp, cd] = await Promise.all([
+          listUsers(), listEvents(), listAll(), listAllAvisos(), fetchComunidad(), fetchEncuestas(), listRetosAdmin(), listReportesRetos(), listCadenasAdmin(),
         ]);
         setUsers(u.users);
         setExtended(u.extended);
@@ -334,6 +337,7 @@ export default function Admin() {
         setEncuestas(enc);
         setRetos(rt);
         setReportes(rp);
+        setCadenas(cd);
       }
       setNow(Date.now());
     } catch (e) {
@@ -506,11 +510,15 @@ export default function Admin() {
         return `${actor} bloqueó a ${name} de los retos`;
       case 'reto_usuario_desbloqueado':
         return `${actor} desbloqueó a ${name} de los retos`;
+      case 'cadena_creada':
+        return `${name} organizó la cadena de Tehilim «${e.detail.cadena ?? ''}»`;
+      case 'cadena_completada':
+        return `Se completó el círculo de la cadena «${e.detail.cadena ?? ''}» (organizó ${name})`;
     }
   };
 
   const dotColor = (k: EventKind) =>
-    k === 'registro' || k === 'aporte_enviado' || k === 'reto_creado' ? 'bg-gold' : k === 'entrada' || k === 'actividad' || k === 'aporte_aprobado' || k === 'kabala_aceptada' || k === 'encuesta_respondida' || k === 'reto_aceptado' || k === 'reto_usuario_desbloqueado' ? 'bg-[var(--success)]' : k === 'aporte_rechazado' || k === 'reto_denunciado' || k === 'reto_usuario_bloqueado' ? 'bg-[var(--danger)]' : k === 'cuenta_borrada' || k === 'cuenta_desactivada' ? 'bg-[var(--danger)]' : 'bg-ink-faint';
+    k === 'registro' || k === 'aporte_enviado' || k === 'reto_creado' || k === 'cadena_creada' ? 'bg-gold' : k === 'entrada' || k === 'actividad' || k === 'aporte_aprobado' || k === 'kabala_aceptada' || k === 'encuesta_respondida' || k === 'reto_aceptado' || k === 'reto_usuario_desbloqueado' || k === 'cadena_completada' ? 'bg-[var(--success)]' : k === 'aporte_rechazado' || k === 'reto_denunciado' || k === 'reto_usuario_bloqueado' ? 'bg-[var(--danger)]' : k === 'cuenta_borrada' || k === 'cuenta_desactivada' ? 'bg-[var(--danger)]' : 'bg-ink-faint';
 
   const pending = (aportes ?? []).filter((a) => a.status === 'pendiente');
   const pendientesRetos = (retos ?? []).filter((r) => r.status === 'pendiente_admin');
@@ -1453,6 +1461,41 @@ export default function Admin() {
                         disabled={busy}
                         onClick={() => {
                           if (confirm('¿Borrar este reto para siempre?')) void run(() => deleteRetoAdmin(r.id), 'Reto borrado.');
+                        }}
+                      >
+                        Borrar
+                      </Btn>
+                    </div>
+                  </Card>
+                ))}
+              </section>
+
+              <section className="space-y-3">
+                <h2 className="text-xl text-ink">Cadenas de Tehilim ({(cadenas ?? []).length})</h2>
+                <p className="text-[13px] leading-relaxed text-ink-faint">
+                  Cualquiera puede organizar una, sin pasar por tu revisión (la urgencia importa). Aquí puedes borrar una si hace falta.
+                </p>
+                {cadenas === null && (
+                  <Card className="border-[var(--danger)] p-4 text-[14px] leading-relaxed text-ink">
+                    <strong>Faltan las cadenas de Tehilim.</strong> Pega <code className="text-gold">supabase/tehilim.sql</code> en el
+                    Editor SQL de Supabase y pulsa Run.
+                  </Card>
+                )}
+                {cadenas?.map((c) => (
+                  <Card key={c.id} className="space-y-2 p-4">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge tone={c.status === 'completa' ? 'green' : 'gold'}>{c.status === 'completa' ? 'Completa' : 'Activa'}</Badge>
+                      <span className="text-[13px] text-ink-faint">
+                        {c.organizador} · {c.tomados} de 150
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[15px] text-ink">{c.title}</span>
+                      <Btn
+                        variant="danger"
+                        disabled={busy}
+                        onClick={() => {
+                          if (confirm('¿Borrar esta cadena para siempre?')) void run(() => deleteCadenaAdmin(c.id), 'Cadena borrada.');
                         }}
                       >
                         Borrar

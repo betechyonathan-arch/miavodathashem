@@ -50,6 +50,7 @@ const GROUPS: Group[] = [
     rows: [
       { he: 'יהודי שלם', es: 'Ser Yehudí — el círculo', desc: 'El círculo exacto: catálogo de halajot y jumrot + constancia de por vida − caídas. Kabalot de crecimiento.', to: '/yehudi' },
       { he: 'אתגרים', es: 'Retos', desc: 'Retar a alguien (privado) o unirte a uno público. Con o sin nombre, según el género de quienes participan.', to: '/retos' },
+      { he: 'שרשרת תהלים', es: 'Cadenas de Tehilim', desc: 'Organiza o súmate: entre todos se completan los 150 capítulos por un motivo.', to: '/retos?t=tehilim' },
       { he: 'קבלה', es: 'Mis kabalot', desc: 'Crea tus compromisos con fecha: qué cuidar o hacer, y cuántos días. Con sugerencias para ti. Bli neder.', to: '/kabala' },
       { he: 'השליחות', es: 'Misión de vida', desc: 'Tu identidad, tu para qué, tu midá principal.', to: '/mision?t=identidad' },
       { he: 'שלבים', es: 'Etapas de vida', desc: 'Define y compara las etapas por las que vas pasando.', to: '/mision?t=etapas' },
