@@ -8,6 +8,7 @@ import {
   abandonarReto,
   buscarParaRetar,
   crearReto,
+  invitarAReto,
   listMisRetos,
   listParticipantesReto,
   listRetosPublicos,
@@ -393,6 +394,9 @@ export function RetoDetalle({ id, onBack }: { id: string; onBack: () => void }) 
   const [msg, setMsg] = useState('');
   const [reportando, setReportando] = useState<string | null>(null);
   const [motivo, setMotivo] = useState('');
+  const [invitando, setInvitando] = useState(false);
+  const [q, setQ] = useState('');
+  const [opciones, setOpciones] = useState<UsuarioBusqueda[]>([]);
 
   const load = async () => {
     if (!day) return;
@@ -409,6 +413,23 @@ export function RetoDetalle({ id, onBack }: { id: string; onBack: () => void }) 
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, day?.dayId]);
+
+  useEffect(() => {
+    if (!invitando || q.trim().length < 2) {
+      setOpciones([]);
+      return;
+    }
+    let alive = true;
+    const t = window.setTimeout(() => {
+      buscarParaRetar(q)
+        .then((r) => alive && setOpciones(r))
+        .catch(() => alive && setOpciones([]));
+    }, 300);
+    return () => {
+      alive = false;
+      window.clearTimeout(t);
+    };
+  }, [q, invitando]);
 
   if (error) return <p className="text-[14px] text-ink-faint">{error}</p>;
   if (reto === undefined) return <p className="text-[13px] text-ink-faint">Cargando…</p>;
@@ -438,6 +459,23 @@ export function RetoDetalle({ id, onBack }: { id: string; onBack: () => void }) 
       await load();
     } catch (e) {
       setError(e instanceof RetoError ? e.message : 'No se pudo marcar.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function invitar(o: UsuarioBusqueda) {
+    setBusy(true);
+    setError('');
+    try {
+      await invitarAReto(id, o.user_id);
+      setMsg(`Invitación mandada a ${o.full_name || 'esa persona'}.`);
+      setQ('');
+      setOpciones([]);
+      setInvitando(false);
+      await load();
+    } catch (e) {
+      setError(e instanceof RetoError ? e.message : 'No se pudo invitar.');
     } finally {
       setBusy(false);
     }
@@ -477,7 +515,55 @@ export function RetoDetalle({ id, onBack }: { id: string; onBack: () => void }) 
           {reto.target_days} {copy.unitPlural}
         </p>
         {reto.visibility === 'privado' && (
-          <ShareBtn url={retoLink(reto.invite_code)} text={`Te reto: ${reto.title}`} />
+          <div className="space-y-3">
+            <ShareBtn url={retoLink(reto.invite_code)} text={`Te reto: ${reto.title}`} />
+            {reto.es_creador && reto.mi_estado === 'activo' && (
+              <div className="border-t border-line pt-3">
+                {invitando ? (
+                  <div className="space-y-2">
+                    <input
+                      autoFocus
+                      className={inputCls}
+                      value={q}
+                      onChange={(e) => setQ(e.target.value)}
+                      placeholder="Escribe al menos 2 letras de su nombre…"
+                    />
+                    {q.trim().length >= 2 && opciones.length === 0 && (
+                      <p className="text-[12px] text-ink-faint">Sin resultados con ese nombre.</p>
+                    )}
+                    {opciones.length > 0 && (
+                      <div className="space-y-1 rounded-xl border border-line bg-raised p-1.5">
+                        {opciones.map((o) => (
+                          <button
+                            key={o.user_id}
+                            disabled={busy}
+                            onClick={() => void invitar(o)}
+                            className="block w-full rounded-lg px-2 py-1.5 text-left text-[14px] text-ink hover:bg-[var(--bg-sunken)]"
+                          >
+                            {o.full_name || '(sin nombre)'}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    <Btn
+                      variant="quiet"
+                      onClick={() => {
+                        setInvitando(false);
+                        setQ('');
+                        setOpciones([]);
+                      }}
+                    >
+                      Cancelar
+                    </Btn>
+                  </div>
+                ) : (
+                  <Btn variant="ghost" onClick={() => setInvitando(true)}>
+                    ➕ Invitar a más gente
+                  </Btn>
+                )}
+              </div>
+            )}
+          </div>
         )}
       </Card>
 
