@@ -48,13 +48,30 @@ export default function InviteCard() {
 
   async function share() {
     const text = inviteMessage(link);
-    if (navigator.share) {
+    const nav = navigator as Navigator & {
+      canShare?: (data?: ShareData) => boolean;
+      share?: (data: ShareData) => Promise<void>;
+    };
+    // Con el póster: manda la imagen y el enlace juntos (el enlace sale como pie de foto). Si el
+    // navegador no soporta compartir archivos, cae al share de solo texto y, si tampoco hay eso,
+    // a WhatsApp Web con el texto.
+    try {
+      const res = await fetch('/zikui-harabim.jpg');
+      const blob = await res.blob();
+      const file = new File([blob], 'zikui-harabim.jpg', { type: 'image/jpeg' });
+      if (nav.share && nav.canShare?.({ files: [file] })) {
+        await nav.share({ files: [file], title: 'Avodah — זכוי הרבים', text });
+        return;
+      }
+    } catch {
+      /* sin imagen o la persona canceló: sigue con el share de solo texto abajo */
+    }
+    if (nav.share) {
       try {
-        await navigator.share({ title: 'Avodah', text, url: link });
+        await nav.share({ title: 'Avodah', text, url: link });
         return;
       } catch {
-        /* la persona cerró el menú de compartir: no es un error */
-        return;
+        return; // cerró el menú de compartir: no es un error
       }
     }
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
@@ -77,6 +94,13 @@ export default function InviteCard() {
 
         {state === 'ready' && stats && (
           <>
+            <img
+              src="/zikui-harabim.jpg"
+              alt="Zikui Harabim — una luz que nunca se apaga"
+              className="w-full rounded-xl border border-line"
+              loading="lazy"
+            />
+
             <div className="flex items-center gap-4">
               <div className="grid h-16 w-16 shrink-0 place-items-center rounded-full border border-gold text-3xl text-gold">
                 {count}
