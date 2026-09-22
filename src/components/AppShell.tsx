@@ -23,6 +23,7 @@ const SYNC_UI: Record<string, { icon: string; label: string; cls: string }> = {
 
 const NAV_LEFT = [
   { to: '/', he: 'בית', es: 'Hoy', end: true },
+  { to: '/retos', he: 'אתגרים', es: 'Retos' },
   { to: '/como-estoy', he: 'איך אני', es: '¿Cómo estoy?' },
 ];
 const NAV_RIGHT = [

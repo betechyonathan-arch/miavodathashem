@@ -28,6 +28,8 @@ import Tora from './pages/Tora';
 import Admin from './pages/Admin';
 import Yehudi from './pages/Yehudi';
 import Mujer from './pages/Mujer';
+import Retos from './pages/Retos';
+import RetoLink from './pages/RetoLink';
 import KabalaPage from './pages/Kabala';
 import Boleta from './pages/Boleta';
 import Menu from './pages/Menu';
@@ -137,6 +139,8 @@ export default function App() {
         <Route path="musar" element={<Navigate to="/tora?t=musar" replace />} />
         <Route path="yehudi" element={<Yehudi />} />
         <Route path="mujer" element={<Mujer />} />
+        <Route path="retos" element={<Retos />} />
+        <Route path="retos/:code" element={<RetoLink />} />
         <Route path="guia" element={<GuiaDeNuevo />} />
         <Route path="kabala" element={<KabalaPage />} />
         <Route path="boleta" element={<Boleta />} />

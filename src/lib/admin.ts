@@ -36,7 +36,13 @@ export type EventKind =
   | 'aporte_aprobado'
   | 'aporte_rechazado'
   | 'kabala_aceptada'
-  | 'encuesta_respondida';
+  | 'encuesta_respondida'
+  | 'reto_creado'
+  | 'reto_aceptado'
+  | 'reto_rechazado'
+  | 'reto_denunciado'
+  | 'reto_usuario_bloqueado'
+  | 'reto_usuario_desbloqueado';
 
 export interface AdminEvent {
   id: number;
@@ -58,6 +64,9 @@ export interface AdminEvent {
     kabala?: string;
     /** encuesta_respondida: el título de la encuesta que respondió. */
     encuesta?: string;
+    /** retos: el título del reto involucrado; visibilidad si fue "publico" o "privado". */
+    reto?: string;
+    visibilidad?: string;
   };
 }
 

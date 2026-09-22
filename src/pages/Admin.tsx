@@ -25,6 +25,16 @@ import {
 } from '../lib/aportes';
 import { AporteForm } from '../components/Aportes';
 import { deleteAviso, listAllAvisos, saveAviso, type Aviso } from '../lib/avisos';
+import {
+  aprobarReto,
+  deleteRetoAdmin,
+  listReportesRetos,
+  listRetosAdmin,
+  resolverReporte,
+  setRetosBloqueadoPorCorreo,
+  type ReporteReto,
+  type RetoAdmin,
+} from '../lib/retos';
 import { sendPushToAll } from '../lib/pushAdmin';
 import {
   EncuestaError,
@@ -256,10 +266,10 @@ const chip = (on: boolean) =>
 
 /* ───────────────────────────── Página ───────────────────────────── */
 
-type Tab = 'resumen' | 'personas' | 'aportes' | 'avisos' | 'kabalot' | 'encuestas' | 'actividad';
+type Tab = 'resumen' | 'personas' | 'aportes' | 'avisos' | 'kabalot' | 'encuestas' | 'retos' | 'actividad';
 type Filter = 'todas' | 'en_linea' | 'nuevas' | 'admins' | 'desactivadas';
 type Sort = 'recientes' | 'ultima' | 'nombre' | 'entradas';
-type EventFilter = 'todo' | 'actividad' | 'registros' | 'entradas' | 'aportes' | 'admin';
+type EventFilter = 'todo' | 'actividad' | 'registros' | 'entradas' | 'aportes' | 'retos' | 'admin';
 
 /**
  * Panel de administración: quién tiene cuenta, quién está en línea, quién se registró y cuándo
@@ -280,6 +290,9 @@ export default function Admin() {
   const [kabalotCom, setKabalotCom] = useState<KabalaComunidad[] | null>(null);
   const [kabDraft, setKabDraft] = useState<KabalaComunidadInput>(emptyKab);
   const [encuestas, setEncuestas] = useState<PublicEncuesta[] | null>(null);
+  const [retos, setRetos] = useState<RetoAdmin[] | null>(null);
+  const [reportes, setReportes] = useState<ReporteReto[] | null>(null);
+  const [bloqueoEmail, setBloqueoEmail] = useState('');
   const [encDraft, setEncDraft] = useState<EncuestaInput>(emptyEnc);
   const [verRespuestas, setVerRespuestas] = useState<string | null>(null);
   const [avisoDraft, setAvisoDraft] = useState<{ id?: string; title: string; body: string }>({ title: '', body: '' });
@@ -302,12 +315,16 @@ export default function Admin() {
         setUsers(d.users);
         setEvents(d.events);
         setAportes(demoAportes());
+        setRetos([]);
+        setReportes([]);
         setEncuestas([{ id: 'e-1', title: 'Del 1 al 10, ¿qué tanto...?', description: '', kind: 'escala', scale_min: 1, scale_max: 10, active: true, respuestas: 12, promedio: 7.4, respondi: false, mi_valor_num: null, mi_valor_texto: null }]);
         setKabalotCom([{ id: 'kc-1', title: 'No hablar lashón hará de la persona que más me cae mal', he: 'שְׁמִירַת הַלָּשׁוֹן', blurb: 'Hasta después de Sucot, sin lashón hará de esa persona.', kavana: '', subject_label: '', pasuk_he: '', pasuk_es: '', pasuk_ref: '', kind: 'cuidar', area: 'speech', ends_on: '2026-10-04', active: true, aceptaron: 42, acepte: false }]);
         setAvisos([{ id: 'av-1', title: 'Shabat Shalom', body: 'Que tengan un Shabat de mucha luz. Recuerden encender las velas a tiempo.', active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }]);
         setExtended(true);
       } else {
-        const [u, e, a, av, kc, enc] = await Promise.all([listUsers(), listEvents(), listAll(), listAllAvisos(), fetchComunidad(), fetchEncuestas()]);
+        const [u, e, a, av, kc, enc, rt, rp] = await Promise.all([
+          listUsers(), listEvents(), listAll(), listAllAvisos(), fetchComunidad(), fetchEncuestas(), listRetosAdmin(), listReportesRetos(),
+        ]);
         setUsers(u.users);
         setExtended(u.extended);
         setEvents(e);
@@ -315,6 +332,8 @@ export default function Admin() {
         setAvisos(av);
         setKabalotCom(kc);
         setEncuestas(enc);
+        setRetos(rt);
+        setReportes(rp);
       }
       setNow(Date.now());
     } catch (e) {
@@ -396,6 +415,7 @@ export default function Admin() {
     const admin: EventKind[] = ['admin_otorgado', 'admin_quitado', 'cuenta_desactivada', 'cuenta_activada', 'cuenta_borrada'];
     if (evFilter === 'actividad') return list.filter((e) => e.kind === 'actividad');
     if (evFilter === 'aportes') return list.filter((e) => e.kind.startsWith('aporte_'));
+    if (evFilter === 'retos') return list.filter((e) => e.kind.startsWith('reto_'));
     if (evFilter === 'registros') return list.filter((e) => e.kind === 'registro');
     if (evFilter === 'entradas') return list.filter((e) => e.kind === 'entrada');
     if (evFilter === 'admin') return list.filter((e) => admin.includes(e.kind));
@@ -474,13 +494,27 @@ export default function Admin() {
         return `${name} aceptó la kabalá «${e.detail.kabala ?? ''}»`;
       case 'encuesta_respondida':
         return `${name} respondió la encuesta «${e.detail.encuesta ?? ''}»`;
+      case 'reto_creado':
+        return `${name} creó el reto «${e.detail.reto ?? ''}» (${e.detail.visibilidad === 'publico' ? 'público' : 'privado'})`;
+      case 'reto_aceptado':
+        return `${name} aceptó el reto «${e.detail.reto ?? ''}»`;
+      case 'reto_rechazado':
+        return `${name} rechazó el reto «${e.detail.reto ?? ''}»`;
+      case 'reto_denunciado':
+        return `${actor} denunció a ${name} en «${e.detail.reto ?? ''}»`;
+      case 'reto_usuario_bloqueado':
+        return `${actor} bloqueó a ${name} de los retos`;
+      case 'reto_usuario_desbloqueado':
+        return `${actor} desbloqueó a ${name} de los retos`;
     }
   };
 
   const dotColor = (k: EventKind) =>
-    k === 'registro' || k === 'aporte_enviado' ? 'bg-gold' : k === 'entrada' || k === 'actividad' || k === 'aporte_aprobado' || k === 'kabala_aceptada' || k === 'encuesta_respondida' ? 'bg-[var(--success)]' : k === 'aporte_rechazado' ? 'bg-[var(--danger)]' : k === 'cuenta_borrada' || k === 'cuenta_desactivada' ? 'bg-[var(--danger)]' : 'bg-ink-faint';
+    k === 'registro' || k === 'aporte_enviado' || k === 'reto_creado' ? 'bg-gold' : k === 'entrada' || k === 'actividad' || k === 'aporte_aprobado' || k === 'kabala_aceptada' || k === 'encuesta_respondida' || k === 'reto_aceptado' || k === 'reto_usuario_desbloqueado' ? 'bg-[var(--success)]' : k === 'aporte_rechazado' || k === 'reto_denunciado' || k === 'reto_usuario_bloqueado' ? 'bg-[var(--danger)]' : k === 'cuenta_borrada' || k === 'cuenta_desactivada' ? 'bg-[var(--danger)]' : 'bg-ink-faint';
 
   const pending = (aportes ?? []).filter((a) => a.status === 'pendiente');
+  const pendientesRetos = (retos ?? []).filter((r) => r.status === 'pendiente_admin');
+  const reportesPendientes = (reportes ?? []).filter((r) => !r.resolved);
   const aporteAuthor = (a: AporteRow) => (a.author_id ? who(a.author_id) : a.author_name || 'Alguien');
 
   const TABS: [Tab, string][] = [
@@ -490,6 +524,7 @@ export default function Admin() {
     ['avisos', 'Avisos'],
     ['kabalot', 'Kabalot'],
     ['encuestas', 'Encuestas'],
+    ['retos', `Retos${pendientesRetos.length + reportesPendientes.length ? ` (${pendientesRetos.length + reportesPendientes.length})` : ''}`],
     ['actividad', 'Actividad'],
   ];
 
@@ -520,7 +555,7 @@ export default function Admin() {
       )}
 
       {/* Pestañas grandes */}
-      <div className="grid grid-cols-2 gap-2 rounded-2xl border border-line bg-raised p-1.5 sm:grid-cols-7">
+      <div className="grid grid-cols-2 gap-2 rounded-2xl border border-line bg-raised p-1.5 sm:grid-cols-8">
         {TABS.map(([id, label]) => (
           <button
             key={id}
@@ -1297,6 +1332,140 @@ export default function Admin() {
         </div>
       )}
 
+      {users && tab === 'retos' && (
+        <div className="space-y-6">
+          {retos === null ? (
+            <Card className="border-[var(--danger)] p-4 text-[14px] leading-relaxed text-ink">
+              <strong>Falta activar los retos.</strong> Pega <code className="text-gold">supabase/retos.sql</code> en el Editor SQL de
+              Supabase y pulsa Run.
+            </Card>
+          ) : (
+            <>
+              <section className="space-y-3">
+                <h2 className="text-xl text-ink">Retos públicos por aprobar ({pendientesRetos.length})</h2>
+                <p className="text-[13px] leading-relaxed text-ink-faint">
+                  Los retos privados NO pasan por aquí: solo si alguien los denuncia (abajo). Solo los públicos, porque cualquiera se puede
+                  suscribir a ellos.
+                </p>
+                {pendientesRetos.length === 0 && <Card className="p-5 text-[15px] text-ink-faint">No hay nada esperando tu revisión.</Card>}
+                {pendientesRetos.map((r) => (
+                  <Card key={r.id} className="space-y-3 p-5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge tone="gold">Público</Badge>
+                      <span className="text-[13px] text-ink-faint">de {r.creador} · {ago(r.created_at, now)}</span>
+                    </div>
+                    <h3 className="text-[18px] text-ink">{r.title}</h3>
+                    {r.description && <p className="text-[14px] leading-relaxed text-ink-soft">{r.description}</p>}
+                    <div className="flex flex-wrap gap-2 border-t border-line pt-3">
+                      <Btn disabled={busy} onClick={() => run(() => aprobarReto(r.id, true), 'Aprobado: ya lo ve todo el mundo.')}>
+                        Aprobar
+                      </Btn>
+                      <Btn variant="danger" disabled={busy} onClick={() => run(() => aprobarReto(r.id, false), 'Rechazado.')}>
+                        Rechazar
+                      </Btn>
+                    </div>
+                  </Card>
+                ))}
+              </section>
+
+              <section className="space-y-3">
+                <h2 className="text-xl text-ink">Denuncias ({reportesPendientes.length} sin resolver)</h2>
+                {(reportes ?? []).length === 0 && <Card className="p-5 text-[15px] text-ink-faint">No hay denuncias.</Card>}
+                {(reportes ?? []).map((rp) => (
+                  <Card key={rp.id} className={`space-y-2 p-4 ${rp.resolved ? 'opacity-70' : 'border-gold'}`}>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {rp.resolved ? <Badge tone="muted">Resuelta{rp.blocked ? ' · bloqueado' : ''}</Badge> : <Badge tone="gold">Sin resolver</Badge>}
+                      <span className="text-[13px] text-ink-faint">{ago(rp.created_at, now)}</span>
+                    </div>
+                    <p className="text-[14px] text-ink">
+                      <strong>{rp.reporter_nombre}</strong> denunció a <strong>{rp.reported_nombre}</strong> en «{rp.reto_titulo}»
+                    </p>
+                    <p className="text-[13px] text-ink-soft">{rp.reason}</p>
+                    {!rp.resolved && (
+                      <div className="flex flex-wrap gap-2 border-t border-line pt-3">
+                        <Btn variant="danger" disabled={busy} onClick={() => run(() => resolverReporte(rp.id, true), 'Persona bloqueada de retos.')}>
+                          Bloquear a {rp.reported_nombre}
+                        </Btn>
+                        <Btn variant="ghost" disabled={busy} onClick={() => run(() => resolverReporte(rp.id, false), 'Descartada, sin bloquear.')}>
+                          Descartar (no bloquear)
+                        </Btn>
+                      </div>
+                    )}
+                  </Card>
+                ))}
+              </section>
+
+              <Card className="space-y-3 p-5">
+                <h2 className="text-lg text-ink">Bloquear o desbloquear de retos, por correo</h2>
+                <p className="text-[13px] leading-relaxed text-ink-faint">
+                  La persona no podrá crear ni unirse a retos nuevos. Lo que ya tenía se queda como está.
+                </p>
+                <form
+                  className="flex flex-wrap gap-2"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!bloqueoEmail.trim()) return;
+                    void run(async () => {
+                      await setRetosBloqueadoPorCorreo(bloqueoEmail, true);
+                      setBloqueoEmail('');
+                    }, 'Bloqueado de retos.');
+                  }}
+                >
+                  <input
+                    className={inputCls + ' min-w-0 flex-1 !py-3'}
+                    type="email"
+                    placeholder="correo@ejemplo.com"
+                    value={bloqueoEmail}
+                    onChange={(e) => setBloqueoEmail(e.target.value)}
+                  />
+                  <Btn type="submit" disabled={busy} className="!py-3">
+                    Bloquear
+                  </Btn>
+                  <Btn
+                    type="button"
+                    variant="ghost"
+                    disabled={busy || !bloqueoEmail.trim()}
+                    className="!py-3"
+                    onClick={() => void run(() => setRetosBloqueadoPorCorreo(bloqueoEmail, false), 'Desbloqueado de retos.')}
+                  >
+                    Desbloquear
+                  </Btn>
+                </form>
+              </Card>
+
+              <section className="space-y-3">
+                <h2 className="text-xl text-ink">Todos los retos ({retos.length})</h2>
+                {retos.map((r) => (
+                  <Card key={r.id} className="space-y-2 p-4">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge tone={r.visibility === 'publico' ? 'gold' : 'muted'}>{r.visibility === 'publico' ? 'Público' : 'Privado'}</Badge>
+                      <Badge tone={r.status === 'activo' ? 'green' : r.status === 'pendiente_admin' ? 'gold' : 'red'}>
+                        {r.status === 'activo' ? 'Activo' : r.status === 'pendiente_admin' ? 'Pendiente' : 'Rechazado'}
+                      </Badge>
+                      <span className="text-[13px] text-ink-faint">
+                        {r.creador} · {plural(r.participantes, 'participante', 'participantes')}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[15px] text-ink">{r.title}</span>
+                      <Btn
+                        variant="danger"
+                        disabled={busy}
+                        onClick={() => {
+                          if (confirm('¿Borrar este reto para siempre?')) void run(() => deleteRetoAdmin(r.id), 'Reto borrado.');
+                        }}
+                      >
+                        Borrar
+                      </Btn>
+                    </div>
+                  </Card>
+                ))}
+              </section>
+            </>
+          )}
+        </div>
+      )}
+
       {users && tab === 'actividad' && (
         <div className="space-y-4">
           <div className="flex flex-wrap gap-2">
@@ -1307,6 +1476,7 @@ export default function Admin() {
                 ['entradas', 'Entradas'],
                 ['registros', 'Cuentas nuevas'],
                 ['aportes', 'Aportes'],
+                ['retos', 'Retos'],
                 ['admin', 'Acciones de admin'],
               ] as [EventFilter, string][]
             ).map(([id, label]) => (
