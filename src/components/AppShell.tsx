@@ -12,6 +12,7 @@ import AporteAlert from './AporteAlert';
 import RetoInviteAlert from './RetoInviteAlert';
 import { getSession } from '../lib/auth/session';
 import { backendConfigured } from '../lib/supabase';
+import { useLang, useT } from '../lib/i18n';
 
 const SYNC_UI: Record<string, { icon: string; label: string; cls: string }> = {
   disabled: { icon: '', label: '', cls: '' },
@@ -37,11 +38,14 @@ export default function AppShell() {
   const wide = useLocation().pathname.startsWith('/admin'); // el panel de admin usa más ancho
   const day = useZury((s) => s.day);
   const theme = useZury((s) => s.theme);
+  const saveSettings = useZury((s) => s.saveSettings);
   const syncStatus = useSync((s) => s.status);
   const [qrOpen, setQrOpen] = useState(false);
   const [qtOpen, setQtOpen] = useState(false);
   const navigate = useNavigate();
   const sync = SYNC_UI[syncStatus] ?? SYNC_UI.disabled;
+  const t = useT();
+  const lang = useLang();
 
   // El Menú (y otras pantallas) pueden abrir el registro rápido sin acoplarse al shell.
   useEffect(() => {
@@ -64,12 +68,21 @@ export default function AppShell() {
     <div className={`themed-transition mx-auto flex min-h-full flex-col ${wide ? 'max-w-5xl' : 'max-w-lg'}`}>
       {/* Header */}
       <header className="safe-top sticky top-0 z-30 border-b border-line bg-bg/85 px-4 py-3 backdrop-blur">
-        <div className="mb-1 flex items-center justify-end">
+        <div className="mb-1 flex items-center justify-end gap-2">
+          <button
+            onClick={() => void saveSettings({ language: lang === 'en' ? 'es' : 'en' })}
+            className="flex items-center gap-1 rounded-full border border-line bg-raised px-2.5 py-1 text-[11px] text-gold"
+            aria-label={lang === 'en' ? 'Cambiar a español' : 'Switch to English'}
+            title={lang === 'en' ? 'Cambiar a español' : 'Switch to English'}
+          >
+            <span>🌐</span>
+            <span>{lang === 'en' ? 'EN' : 'ES'}</span>
+          </button>
           <button
             onClick={() => setQtOpen(true)}
             className="flex items-center gap-1.5 rounded-full border border-line bg-raised px-2.5 py-1 text-[11px] text-gold"
-            aria-label="Toque rápido"
-            title="Toque rápido"
+            aria-label={t('Toque rápido')}
+            title={t('Toque rápido')}
           >
             <span>⚡</span>
             <span className="hebrew">מהיר</span>
@@ -79,10 +92,10 @@ export default function AppShell() {
           <button onClick={() => navigate('/mision')} className="text-left">
             <div className="hebrew text-xl font-semibold leading-none text-gold">היום</div>
             <div className="mt-0.5 text-[12px] text-ink-soft">
-              {day ? `${day.eveningPhase ? 'noche · ' : ''}${hebrewDateEs(day.displayHebrewDate)}` : '—'}
+              {day ? `${day.eveningPhase ? t('noche') + ' · ' : ''}${hebrewDateEs(day.displayHebrewDate)}` : '—'}
             </div>
             <div className="mt-0.5 text-[10px] text-ink-faint">
-              <span className="hebrew">שליחות</span> · Misión
+              <span className="hebrew">שליחות</span> · {t('Misión')}
             </div>
           </button>
           <div className="flex flex-col items-end">
@@ -97,16 +110,16 @@ export default function AppShell() {
                 {day?.holidays?.length ? ` · ${day.holidays[0]}` : ''}
               </div>
               <div className="mt-0.5 text-[10px] text-gold">
-                <span className="hebrew">לוח</span> · Calendario
+                <span className="hebrew">לוח</span> · {t('Calendario')}
               </div>
             </button>
             {sync.icon && (
               <button
                 onClick={() => navigate('/ajustes')}
                 className={`mt-0.5 text-[10px] ${sync.cls}`}
-                title="Estado de la copia en la nube"
+                title={t('Estado de la copia en la nube')}
               >
-                {sync.icon} {sync.label}
+                {sync.icon} {t(sync.label)}
               </button>
             )}
           </div>
@@ -132,14 +145,14 @@ export default function AppShell() {
         {NAV_LEFT.map((n) => (
           <NavLink key={n.to} to={n.to} end={n.end} className={navItem}>
             <span className="hebrew text-[15px] leading-none">{n.he}</span>
-            <span className="text-[9px] uppercase tracking-[0.12em] leading-none">{n.es}</span>
+            <span className="text-[9px] uppercase tracking-[0.12em] leading-none">{t(n.es)}</span>
           </NavLink>
         ))}
 
         <button
           onClick={() => setQrOpen(true)}
           className="relative -top-4 flex flex-col items-center"
-          aria-label="Registrar"
+          aria-label={t('Registrar')}
         >
           <span className="grid h-14 w-14 place-items-center rounded-full border border-bg bg-gold font-serif text-2xl text-[#1a140a] shadow-[0_4px_16px_rgba(0,0,0,0.28)] ring-1 ring-[color-mix(in_srgb,var(--gold)_40%,#000)] transition-[filter] duration-300 active:brightness-95">
             +
@@ -150,7 +163,7 @@ export default function AppShell() {
         {NAV_RIGHT.map((n) => (
           <NavLink key={n.to} to={n.to} className={navItem}>
             <span className="hebrew text-[15px] leading-none">{n.he}</span>
-            <span className="text-[9px] uppercase tracking-[0.12em] leading-none">{n.es}</span>
+            <span className="text-[9px] uppercase tracking-[0.12em] leading-none">{t(n.es)}</span>
           </NavLink>
         ))}
       </nav>

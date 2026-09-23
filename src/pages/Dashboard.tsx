@@ -27,11 +27,13 @@ import PushBanner from '../components/PushBanner';
 import YahrzeitToday from '../components/YahrzeitToday';
 import type { AreaId, DayRecord, Entry, Goal } from '../lib/db/schema';
 import EntryList from '../components/EntryList';
+import { useT } from '../lib/i18n';
 
 export default function Dashboard() {
   const { day, dayRecord, now, settings } = useZury();
   const navigate = useNavigate();
   const [qrArea, setQrArea] = useState<AreaId | null>(null);
+  const t = useT();
 
   const pendingBoleta = day && settings ? pendingBoletaPeriod(settings, day.dayId) : null;
 
@@ -147,7 +149,7 @@ export default function Dashboard() {
         <Card className="flex items-center gap-4 p-4">
           <Ring value={(yehudiCircle?.percent ?? 0) / 100} size={72} stroke={7} />
           <div className="min-w-0 flex-1">
-            <div className="text-[12px] uppercase tracking-[0.16em] text-ink-faint">Ser Yehudí</div>
+            <div className="text-[12px] uppercase tracking-[0.16em] text-ink-faint">{t('Ser Yehudí')}</div>
             <div className="hebrew text-2xl leading-tight text-gold">
               יהודי שלם · {yehudiCircle?.percent ?? 0}%
             </div>
@@ -178,9 +180,9 @@ export default function Dashboard() {
           >
             <span className="hebrew text-[13px] leading-none text-ink">{a.he}</span>
             <span className="text-[9px] uppercase tracking-[0.1em] leading-none text-ink-faint">
-              {a.es}
+              {t(a.es)}
             </span>
-            {a.done && <span className="text-[9px] leading-none text-[var(--success)]">✓ hecho</span>}
+            {a.done && <span className="text-[9px] leading-none text-[var(--success)]">✓ {t('hecho')}</span>}
           </button>
         ))}
       </div>
@@ -225,18 +227,18 @@ export default function Dashboard() {
       {showCheckIn && !day.isShabbat && (
         <Card className="w-full p-4">
           <button className="w-full text-left" onClick={() => navigate('/check-in')}>
-            <SectionTitle es="Inicio del día · ~60s" he="כוונה ליום" />
+            <SectionTitle es={t('Inicio del día · ~60s')} he="כוונה ליום" />
             <p className="text-[13px] text-ink-soft">
               4 preguntas cortas para entrar al día con un punto de Avodá claro.
             </p>
-            <span className="mt-2 inline-block text-[13px] font-medium text-gold">Empezar check-in →</span>
+            <span className="mt-2 inline-block text-[13px] font-medium text-gold">{t('Empezar check-in →')}</span>
           </button>
         </Card>
       )}
       {showCheshbon && !day.isShabbat && (
         <Card className="w-full p-4">
           <button className="w-full text-left" onClick={() => navigate('/cheshbon')}>
-            <SectionTitle es="Final del día" he="חשבון הנפש" />
+            <SectionTitle es={t('Final del día')} he="חשבון הנפש" />
             <p className="text-[13px] text-ink-soft">
               El sistema ya revisó lo que registraste. Solo te preguntará lo que falta.
             </p>
@@ -248,7 +250,7 @@ export default function Dashboard() {
       {/* Exigencia — rendición de cuentas */}
       {callouts.length > 0 && (
         <div>
-          <SectionTitle es="Sin rodeos" he="דין וחשבון" />
+          <SectionTitle es={t('Sin rodeos')} he="דין וחשבון" />
           <Card className="space-y-2 p-4">
             {callouts.map((c) => (
               <p
@@ -290,11 +292,11 @@ export default function Dashboard() {
       {/* Anillos por área */}
       <div>
         <SectionTitle
-          es="Áreas de hoy"
+          es={t('Áreas de hoy')}
           he="תחומים"
           extra={
             <button onClick={() => navigate('/areas')} className="text-[12px] text-gold">
-              ¿qué es cada una? →
+              {t('¿qué es cada una? →')}
             </button>
           }
         />
@@ -319,7 +321,7 @@ export default function Dashboard() {
 
       {/* Actividad — día / semana / mes / año, en rojo/verde por tendencia */}
       <div>
-        <SectionTitle es="Actividad" he="מְגַמָּה" />
+        <SectionTitle es={t('Actividad')} he="מְגַמָּה" />
         <Card className="p-4">
           <ActivityChart anchorKey={day.dayId} />
         </Card>
@@ -331,11 +333,11 @@ export default function Dashboard() {
       {activeGoals.length > 0 && (
         <div>
           <SectionTitle
-            es="Metas activas"
+            es={t('Metas activas')}
             he="מטרות"
             extra={
               <button onClick={() => navigate('/mision')} className="text-[12px] text-gold">
-                ver todas →
+                {t('ver todas →')}
               </button>
             }
           />
@@ -361,12 +363,12 @@ export default function Dashboard() {
       {/* Timeline de hoy */}
       <div>
         <SectionTitle
-          es="Registros de hoy"
+          es={t('Registros de hoy')}
           he="מה קרה היום"
           extra={
             todayEntries.length > 0 ? (
               <button onClick={() => navigate('/dia/' + day.dayId)} className="text-[12px] text-gold">
-                ver día →
+                {t('ver día →')}
               </button>
             ) : undefined
           }
@@ -384,7 +386,7 @@ export default function Dashboard() {
       {/* Patrones observados */}
       {patterns.length > 0 && (
         <div>
-          <SectionTitle es="Patrones observados (últimos 30 días)" he="דפוסים" />
+          <SectionTitle es={t('Patrones observados (últimos 30 días)')} he="דפוסים" />
           <Card className="space-y-2 p-4">
             {patterns.map((p, i) => (
               <p key={i} className="text-[13px] text-ink-soft">

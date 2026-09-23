@@ -40,6 +40,7 @@ import {
 import { Btn, Card, Field, Ring, SectionTitle, inputCls } from '../components/ui';
 import RetosGuia from '../components/RetosGuia';
 import { marcarRetosGuiaVista, retosGuiaVista } from '../lib/retosGuia';
+import { useT } from '../lib/i18n';
 
 const KIND_ICON: Record<'cuidar' | 'hacer', string> = { cuidar: '🛡️', hacer: '✅' };
 
@@ -94,6 +95,7 @@ function ShareBtn({ url, text, label }: { url: string; text: string; label?: str
 
 function CrearReto({ onCreated }: { onCreated: (id: string) => void }) {
   const { day } = useZury();
+  const t = useT();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [kind, setKind] = useState<'cuidar' | 'hacer'>('cuidar');
@@ -252,7 +254,7 @@ function CrearReto({ onCreated }: { onCreated: (id: string) => void }) {
 
         {error && <p className="text-[13px] text-[var(--danger)]">{error}</p>}
         <Btn size="lg" disabled={busy || title.trim().length < 3 || !day} onClick={() => void crear()} className="w-full">
-          {busy ? 'Creando…' : 'Crear reto'}
+          {busy ? t('Creando…') : t('Crear reto')}
         </Btn>
       </Card>
     </div>
@@ -286,6 +288,7 @@ function MiRetoCard({ r, onOpen }: { r: MiReto; onOpen: () => void }) {
 function MisRetos({ onOpen }: { onOpen: (id: string) => void }) {
   const [list, setList] = useState<MiReto[] | null>(null);
   const [error, setError] = useState('');
+  const t = useT();
 
   useEffect(() => {
     listMisRetos()
@@ -294,7 +297,7 @@ function MisRetos({ onOpen }: { onOpen: (id: string) => void }) {
   }, []);
 
   if (error) return <p className="text-[14px] text-ink-faint">{error}</p>;
-  if (!list) return <p className="text-[13px] text-ink-faint">Cargando…</p>;
+  if (!list) return <p className="text-[13px] text-ink-faint">{t('Cargando…')}</p>;
 
   const invitaciones = list.filter((r) => r.mi_estado === 'invitado');
   const activos = list.filter((r) => r.mi_estado === 'activo');
@@ -312,15 +315,15 @@ function MisRetos({ onOpen }: { onOpen: (id: string) => void }) {
     <div className="space-y-5">
       {invitaciones.length > 0 && (
         <section className="space-y-2">
-          <h2 className="text-[12px] uppercase tracking-[0.16em] text-gold">🔥 Te retaron</h2>
+          <h2 className="text-[12px] uppercase tracking-[0.16em] text-gold">{t('🔥 Te retaron')}</h2>
           {invitaciones.map((r) => (
             <MiRetoCard key={r.id} r={r} onOpen={() => onOpen(r.id)} />
           ))}
         </section>
       )}
       <section className="space-y-2">
-        <h2 className="text-[12px] uppercase tracking-[0.16em] text-ink-faint">Activos</h2>
-        {activos.length === 0 && <p className="text-[13px] text-ink-faint">Ninguno todavía.</p>}
+        <h2 className="text-[12px] uppercase tracking-[0.16em] text-ink-faint">{t('Activos')}</h2>
+        {activos.length === 0 && <p className="text-[13px] text-ink-faint">{t('Ninguno todavía.')}</p>}
         {activos.map((r) => (
           <MiRetoCard key={r.id} r={r} onOpen={() => onOpen(r.id)} />
         ))}
@@ -333,6 +336,7 @@ function MisRetos({ onOpen }: { onOpen: (id: string) => void }) {
 
 function RetosPublicos({ onJoined }: { onJoined: (id: string) => void }) {
   const { day } = useZury();
+  const t = useT();
   const [list, setList] = useState<RetoPublico[] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState('');
@@ -384,7 +388,7 @@ function RetosPublicos({ onJoined }: { onJoined: (id: string) => void }) {
               <span className="text-[13px] text-gold">✓ Ya participas</span>
             ) : (
               <Btn size="lg" disabled={busy === r.id} onClick={() => void unirme(r)}>
-                {busy === r.id ? 'Uniendo…' : 'Suscribirme'}
+                {busy === r.id ? t('Uniendo…') : t('Suscribirme')}
               </Btn>
             )}
           </Card>
@@ -398,6 +402,7 @@ function RetosPublicos({ onJoined }: { onJoined: (id: string) => void }) {
 
 export function RetoDetalle({ id, onBack }: { id: string; onBack: () => void }) {
   const { day } = useZury();
+  const t = useT();
   const [reto, setReto] = useState<MiReto | null | undefined>(undefined);
   const [participantes, setParticipantes] = useState<ParticipanteReto[] | null>(null);
   const [busy, setBusy] = useState(false);
@@ -538,13 +543,13 @@ export function RetoDetalle({ id, onBack }: { id: string; onBack: () => void }) 
   return (
     <div className="space-y-4">
       <Btn variant="quiet" size="lg" onClick={onBack}>
-        ‹ Mis retos
+        {t('‹ Mis retos')}
       </Btn>
 
       <Card className="space-y-3 p-5">
         <div className="flex flex-wrap items-center gap-2">
-          {reto.visibility === 'publico' && <span className="rounded-md border border-line px-1.5 py-0.5 text-[10px] text-ink-faint">Público</span>}
-          {reto.anonimo && <span className="rounded-md border border-line px-1.5 py-0.5 text-[10px] text-ink-faint">Anónimo</span>}
+          {reto.visibility === 'publico' && <span className="rounded-md border border-line px-1.5 py-0.5 text-[10px] text-ink-faint">{t('Público')}</span>}
+          {reto.anonimo && <span className="rounded-md border border-line px-1.5 py-0.5 text-[10px] text-ink-faint">{t('Anónimo')}</span>}
         </div>
         <h1 className="text-2xl text-ink">
           {KIND_ICON[reto.kind]} {reto.title}
@@ -609,13 +614,13 @@ export function RetoDetalle({ id, onBack }: { id: string; onBack: () => void }) 
 
       {reto.mi_estado === 'invitado' ? (
         <Card className="space-y-3 p-5">
-          <p className="text-[16px] text-ink">Te retaron a esto. ¿Aceptas?</p>
+          <p className="text-[16px] text-ink">{t('Te retaron a esto. ¿Aceptas?')}</p>
           <div className="grid grid-cols-2 gap-2">
             <Btn size="lg" disabled={busy} onClick={() => void responder(true)}>
-              Aceptar
+              {t('Aceptar')}
             </Btn>
             <Btn variant="ghost" size="lg" disabled={busy} onClick={() => void responder(false)}>
-              Rechazar
+              {t('Rechazar')}
             </Btn>
           </div>
         </Card>
@@ -664,7 +669,7 @@ export function RetoDetalle({ id, onBack }: { id: string; onBack: () => void }) 
                             onClick={() => void cancelar(p.user_id)}
                             className="min-h-[44px] px-1 text-[13px] text-ink-faint underline underline-offset-2"
                           >
-                            Cancelar
+                            {t('Cancelar')}
                           </button>
                         )}
                         {activo && (
@@ -672,7 +677,7 @@ export function RetoDetalle({ id, onBack }: { id: string; onBack: () => void }) 
                             onClick={() => setReportando(reportando === p.user_id ? null : p.user_id)}
                             className="min-h-[44px] px-1 text-[13px] text-ink-faint underline underline-offset-2"
                           >
-                            Denunciar
+                            {t('Denunciar')}
                           </button>
                         )}
                       </div>
@@ -724,10 +729,10 @@ export function RetoDetalle({ id, onBack }: { id: string; onBack: () => void }) 
               variant="quiet"
               size="lg"
               onClick={() => {
-                if (confirm('¿Dejar este reto?')) void abandonarReto(id).then(onBack);
+                if (confirm(t('¿Dejar este reto?'))) void abandonarReto(id).then(onBack);
               }}
             >
-              Dejar este reto
+              {t('Dejar este reto')}
             </Btn>
           )}
         </>
@@ -739,6 +744,7 @@ export function RetoDetalle({ id, onBack }: { id: string; onBack: () => void }) 
 /* ───────────────────────── Cadenas de Tehilim ───────────────────────── */
 
 function OrganizarCadena({ onCreated, onCancel }: { onCreated: (id: string) => void; onCancel: () => void }) {
+  const t = useT();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [busy, setBusy] = useState(false);
@@ -775,7 +781,7 @@ function OrganizarCadena({ onCreated, onCancel }: { onCreated: (id: string) => v
       {error && <p className="text-[13px] text-[var(--danger)]">{error}</p>}
       <div className="flex flex-wrap gap-2">
         <Btn size="lg" disabled={busy || title.trim().length < 3} onClick={() => void crear()}>
-          {busy ? 'Organizando…' : 'Organizar cadena'}
+          {busy ? t('Organizando…') : t('Organizar cadena')}
         </Btn>
         <Btn variant="quiet" size="lg" onClick={onCancel}>
           Cancelar
@@ -1021,8 +1027,9 @@ export default function Retos() {
   const saveSettings = useZury((s) => s.saveSettings);
   const [guideClosed, setGuideClosed] = useState(false);
   const [params, setParams] = useSearchParams();
-  const t = params.get('t');
-  const tab = t === 'publicos' ? 'publicos' : t === 'crear' ? 'crear' : t === 'tehilim' ? 'tehilim' : 'mios';
+  const tabParam = params.get('t');
+  const tab = tabParam === 'publicos' ? 'publicos' : tabParam === 'crear' ? 'crear' : tabParam === 'tehilim' ? 'tehilim' : 'mios';
+  const t = useT();
   const ver = params.get('ver');
   const vt = params.get('vt'); // cadena de Tehilim en detalle
 
@@ -1058,9 +1065,9 @@ export default function Retos() {
 
   return (
     <div className="space-y-4">
-      <SectionTitle es="Retos" he="אתגרים" />
+      <SectionTitle es={t('Retos')} he="אתגרים" />
       <p className="-mt-3 text-[12px] leading-relaxed text-ink-faint">
-        Retar a alguien a cuidar o hacer algo, sumarte a un reto público, u organizar una cadena de Tehilim entre todos.
+        {t('Retar a alguien a cuidar o hacer algo, sumarte a un reto público, u organizar una cadena de Tehilim entre todos.')}
       </p>
       <div className="grid grid-cols-2 gap-2 rounded-xl border border-line bg-raised p-1.5 text-[15px] sm:grid-cols-4">
         {(
@@ -1076,7 +1083,7 @@ export default function Retos() {
             onClick={() => setParams({ t: id })}
             className={`min-h-[48px] rounded-lg py-2.5 transition-colors ${tab === id ? 'bg-gold font-medium text-[#1a140a]' : 'text-ink-soft'}`}
           >
-            {label}
+            {t(label)}
           </button>
         ))}
       </div>

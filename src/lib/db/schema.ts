@@ -350,6 +350,8 @@ export interface Settings {
   guideDoneAt?: string | null;
   /** Cuándo vio (o saltó) la guía de Retos. Sale una sola vez, la primera vez que entra a esa sección. */
   guideRetosDoneAt?: string | null;
+  /** Idioma de la app junto al hebreo: español (por defecto) o inglés. Ver src/lib/i18n.ts. */
+  language?: 'es' | 'en';
   aiEnabled: boolean; // módulo IA opcional, off por defecto
   aiProvider: 'anthropic';
   aiModel: string; // p. ej. claude-opus-5 / claude-sonnet-5 / claude-haiku-4-5
