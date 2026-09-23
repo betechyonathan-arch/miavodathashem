@@ -7,6 +7,7 @@ import { catLabel } from '../lib/categories';
 import { YEHUDI_CATALOG, YEHUDI_GROUPS, type YehudiItem } from '../lib/yehudi/catalog';
 import { computeYehudiCircle, lifetimeTotals, proposeKabalot } from '../lib/yehudi/circle';
 import { Btn, Card, Field, Ring, SectionTitle, inputCls } from '../components/ui';
+import { useT } from '../lib/i18n';
 
 type Mark = 'si' | 'aveces' | 'no';
 const MARK_OPTS: { id: Mark; label: string }[] = [
@@ -22,6 +23,7 @@ const LEVEL_LABEL: Record<YehudiItem['level'], string> = {
 const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 
 function ItemMarks({ value, onSet }: { value: Mark; onSet: (m: Mark) => void }) {
+  const t = useT();
   return (
     <div className="flex gap-1">
       {MARK_OPTS.map((m) => (
@@ -38,7 +40,7 @@ function ItemMarks({ value, onSet }: { value: Mark; onSet: (m: Mark) => void }) 
               : 'border-line bg-raised text-ink-faint'
           }`}
         >
-          {m.label}
+          {t(m.label)}
         </button>
       ))}
     </div>
@@ -52,6 +54,7 @@ function CatalogList({
   value: Record<string, Mark>;
   onSet: (id: string, m: Mark) => void;
 }) {
+  const t = useT();
   return (
     <div className="space-y-4">
       {YEHUDI_GROUPS.map((g) => {
@@ -72,7 +75,7 @@ function CatalogList({
                   <p className="mt-0.5 text-[12px] leading-relaxed text-ink-soft">{it.es}</p>
                   <div className="mt-1.5 flex items-center justify-between gap-2">
                     <span className="text-[10px] uppercase tracking-[0.12em] text-ink-faint">
-                      {LEVEL_LABEL[it.level]}
+                      {t(LEVEL_LABEL[it.level])}
                       {it.sourceEs ? ` · ${it.sourceEs}` : ''}
                     </span>
                     <ItemMarks value={value[it.id] ?? 'no'} onSet={(m) => onSet(it.id, m)} />
@@ -88,6 +91,7 @@ function CatalogList({
 }
 
 export default function Yehudi() {
+  const t = useT();
   const { settings, saveSettings } = useZury();
   const entries = useLiveQuery(() => db.entries.toArray(), [], [] as Entry[]);
 
@@ -120,12 +124,11 @@ export default function Yehudi() {
     const draftFilled = { ...yehudi.items, ...draft };
     return (
       <div className="space-y-5">
-        <SectionTitle es="Ser Yehudí — punto de partida" he="נְקֻדַּת הַהַתְחָלָה" />
+        <SectionTitle es={t('Ser Yehudí — punto de partida')} he="נְקֻדַּת הַהַתְחָלָה" />
         <p className="-mt-2 text-[12px] leading-relaxed text-ink-faint">
-          El círculo «ser Yehudí al 100%» mide, con exactitud y sin adornos, cuánto de la vara sostienes:
-          todas las halajot y las jumrot, con actividad real, menos las caídas recientes. No es un
-          veredicto sobre tu alma; es el camino y lo que sigue. Primero dime qué cuidas hoy — de ahí
-          partimos.
+          {t(
+            'El círculo «ser Yehudí al 100%» mide, con exactitud y sin adornos, cuánto de la vara sostienes: todas las halajot y las jumrot, con actividad real, menos las caídas recientes. No es un veredicto sobre tu alma; es el camino y lo que sigue. Primero dime qué cuidas hoy — de ahí partimos.',
+          )}
         </p>
         <CatalogList
           value={draftFilled}
@@ -137,10 +140,10 @@ export default function Yehudi() {
             patchYehudi({ items: draftFilled, onboardedAt: new Date().toISOString() })
           }
         >
-          Guardar y ver mi círculo
+          {t('Guardar y ver mi círculo')}
         </Btn>
         <p className="text-center text-[11px] text-ink-faint">
-          Lo que dejes sin marcar cuenta como «todavía no». Puedes ajustarlo cuando quieras.
+          {t('Lo que dejes sin marcar cuenta como «todavía no». Puedes ajustarlo cuando quieras.')}
         </p>
       </div>
     );
@@ -150,13 +153,13 @@ export default function Yehudi() {
   if (editingCatalog) {
     return (
       <div className="space-y-5">
-        <SectionTitle es="Revisar el catálogo" he="הַקָּטָלוֹג" />
+        <SectionTitle es={t('Revisar el catálogo')} he="הַקָּטָלוֹג" />
         <p className="-mt-2 text-[12px] leading-relaxed text-ink-faint">
-          Marca honestamente. «Sí» solo cuenta pleno si además hay actividad reciente en esa área.
+          {t('Marca honestamente. «Sí» solo cuenta pleno si además hay actividad reciente en esa área.')}
         </p>
         <CatalogList value={yehudi.items} onSet={(id, m) => patchYehudi({ items: { ...yehudi.items, [id]: m } })} />
         <Btn className="w-full" onClick={() => setEditingCatalog(false)}>
-          Listo
+          {t('Listo')}
         </Btn>
       </div>
     );
@@ -213,20 +216,21 @@ export default function Yehudi() {
 
   return (
     <div className="space-y-6">
-      <SectionTitle es="Ser Yehudí — el círculo exacto" he="יְהוּדִי שָׁלֵם" />
+      <SectionTitle es={t('Ser Yehudí — el círculo exacto')} he="יְהוּדִי שָׁלֵם" />
 
       {/* Círculo */}
       <Card className="p-5">
         <div className="flex items-center gap-4">
           <Ring value={(circle?.percent ?? 0) / 100} size={112} stroke={9} />
           <div className="min-w-0 flex-1">
-            <div className="text-[12px] uppercase tracking-[0.16em] text-ink-faint">El camino recorrido</div>
+            <div className="text-[12px] uppercase tracking-[0.16em] text-ink-faint">{t('El camino recorrido')}</div>
             <div className="hebrew text-3xl leading-tight text-gold">
               {circle?.percent ?? 0}<span className="text-xl">%</span>
             </div>
             <p className="mt-1 text-[12px] leading-relaxed text-ink-soft">
-              El 100% es todas las halajot y las jumrot, sostenidas con actividad real, sin caídas. Es una
-              vara alta a propósito. No es un juicio sobre ti: es lo que falta del camino.
+              {t(
+                'El 100% es todas las halajot y las jumrot, sostenidas con actividad real, sin caídas. Es una vara alta a propósito. No es un juicio sobre ti: es lo que falta del camino.',
+              )}
             </p>
           </div>
         </div>
@@ -236,11 +240,11 @@ export default function Yehudi() {
       {circle && (
         <div>
           <SectionTitle
-            es="¿Por qué ese número?"
+            es={t('¿Por qué ese número?')}
             he="לָמָּה"
             extra={
               <button onClick={() => setShowWhy((v) => !v)} className="text-[12px] text-gold">
-                {showWhy ? 'ocultar' : 'ver'}
+                {showWhy ? t('ocultar') : t('ver')}
               </button>
             }
           />
@@ -262,13 +266,13 @@ export default function Yehudi() {
                 </div>
               ))}
               <div className="flex items-center justify-between border-t border-line pt-2">
-                <span className="text-[13px] font-medium text-ink">Total</span>
+                <span className="text-[13px] font-medium text-ink">{t('Total')}</span>
                 <span className="text-[13px] font-medium tabular-nums text-gold">{circle.percent}%</span>
               </div>
               <p className="text-[11px] leading-relaxed text-ink-faint">
-                Catálogo hasta +88 · constancia de por vida hasta +12 (meta 600 registros) · las caídas de
-                30 días recortan el avance hasta un 30%, nunca a cero. Cuenta más el principio del camino,
-                para que se mueva desde el primer paso. La caída se responde con el regreso, no con culpa (§60).
+                {t(
+                  'Catálogo hasta +88 · constancia de por vida hasta +12 (meta 600 registros) · las caídas de 30 días recortan el avance hasta un 30%, nunca a cero. Cuenta más el principio del camino, para que se mueva desde el primer paso. La caída se responde con el regreso, no con culpa (§60).',
+                )}
               </p>
             </Card>
           )}
@@ -277,11 +281,11 @@ export default function Yehudi() {
 
       {/* Kabalot */}
       <div>
-        <SectionTitle es="Kabalot de crecimiento" he="קַבָּלוֹת" />
+        <SectionTitle es={t('Kabalot de crecimiento')} he="קַבָּלוֹת" />
 
         {proposals.length > 0 && (
           <Card className="mb-2 space-y-2 p-4">
-            <p className="text-[12px] text-ink-faint">El sistema te propone (de tu área más floja, lo más alcanzable):</p>
+            <p className="text-[12px] text-ink-faint">{t('El sistema te propone (de tu área más floja, lo más alcanzable):')}</p>
             {proposals.map((it) => (
               <div key={it.id} className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -290,11 +294,11 @@ export default function Yehudi() {
                   </p>
                   <p className="text-[12px] leading-relaxed text-ink-soft">{it.es}</p>
                   <p className="text-[10px] uppercase tracking-[0.12em] text-ink-faint">
-                    {catLabel(it.area)} · {LEVEL_LABEL[it.level]}
+                    {catLabel(it.area)} · {t(LEVEL_LABEL[it.level])}
                   </p>
                 </div>
                 <Btn variant="ghost" className="shrink-0 px-3 py-1.5 text-[12px]" onClick={() => acceptProposal(it)}>
-                  Aceptar
+                  {t('Aceptar')}
                 </Btn>
               </div>
             ))}
@@ -302,12 +306,12 @@ export default function Yehudi() {
         )}
 
         <Card className="mb-2 space-y-2 p-4">
-          <Field label="Tu propia kabalá">
+          <Field label={t('Tu propia kabalá')}>
             <input
               className={inputCls}
               value={ownText}
               onChange={(e) => setOwnText(e.target.value)}
-              placeholder="Algo concreto que aceptas sostener…"
+              placeholder={t('Algo concreto que aceptas sostener…')}
             />
           </Field>
           <div className="flex gap-2">
@@ -316,7 +320,7 @@ export default function Yehudi() {
               value={ownArea}
               onChange={(e) => setOwnArea(e.target.value as AreaId | '')}
             >
-              <option value="">(sin área)</option>
+              <option value="">{t('(sin área)')}</option>
               {YEHUDI_GROUPS.map((g) => (
                 <option key={g.area} value={g.area}>
                   {g.es}
@@ -324,7 +328,7 @@ export default function Yehudi() {
               ))}
             </select>
             <Btn onClick={addOwnKabala} disabled={!ownText.trim()}>
-              Agregar
+              {t('Agregar')}
             </Btn>
           </div>
         </Card>
@@ -352,30 +356,30 @@ export default function Yehudi() {
                     }}
                   >
                     {k.status === 'sostenida'
-                      ? 'sostenida'
+                      ? t('sostenida')
                       : k.status === 'rota'
-                        ? 'se rompió'
-                        : 'aceptada'}
-                    {k.kind === 'own' ? ' · propia' : ''}
+                        ? t('se rompió')
+                        : t('aceptada')}
+                    {k.kind === 'own' ? t(' · propia') : ''}
                   </span>
                   <div className="flex gap-1">
                     <button
                       onClick={() => setKabalaStatus(k.id, 'sostenida')}
                       className="rounded-md border border-line px-2 py-0.5 text-[11px] text-ink-soft"
                     >
-                      La sostengo
+                      {t('La sostengo')}
                     </button>
                     <button
                       onClick={() => setKabalaStatus(k.id, 'rota')}
                       className="rounded-md border border-line px-2 py-0.5 text-[11px] text-ink-soft"
                     >
-                      Se rompió
+                      {t('Se rompió')}
                     </button>
                     <button
                       onClick={() => setKabalaStatus(k.id, 'archivada')}
                       className="rounded-md border border-line px-2 py-0.5 text-[11px] text-ink-faint"
                     >
-                      Archivar
+                      {t('Archivar')}
                     </button>
                   </div>
                 </div>
@@ -384,7 +388,7 @@ export default function Yehudi() {
           </Card>
         ) : (
           <p className="px-1 text-[12px] text-ink-faint">
-            Aún no aceptas ninguna kabalá. Acepta una propuesta o escribe la tuya.
+            {t('Aún no aceptas ninguna kabalá. Acepta una propuesta o escribe la tuya.')}
           </p>
         )}
       </div>
@@ -392,17 +396,17 @@ export default function Yehudi() {
       {/* Registro de toda la app */}
       {totals && (
         <div>
-          <SectionTitle es="Registro de toda la app" he="הַכֹּל" />
+          <SectionTitle es={t('Registro de toda la app')} he="הַכֹּל" />
           <Card className="grid grid-cols-2 gap-y-3 p-4 text-[13px]">
             {[
-              ['Registros', totals.entries],
-              ['Días registrados', totals.daysLogged],
-              ['Victorias', totals.victories],
-              ['Caídas', totals.falls],
-              ['Recuperaciones', totals.recoveries],
-              ['Minutos de Torá', totals.torahMinutes],
-              ['Kabalot sostenidas', totals.kabalotSostenidas],
-              ['% del catálogo', `${Math.round((circle?.catalogPct ?? 0) * 100)}%`],
+              [t('Registros'), totals.entries],
+              [t('Días registrados'), totals.daysLogged],
+              [t('Victorias'), totals.victories],
+              [t('Caídas'), totals.falls],
+              [t('Recuperaciones'), totals.recoveries],
+              [t('Minutos de Torá'), totals.torahMinutes],
+              [t('Kabalot sostenidas'), totals.kabalotSostenidas],
+              [t('% del catálogo'), `${Math.round((circle?.catalogPct ?? 0) * 100)}%`],
             ].map(([label, value]) => (
               <div key={label as string}>
                 <div className="text-[18px] font-medium text-gold tabular-nums">{value}</div>
@@ -417,7 +421,7 @@ export default function Yehudi() {
         onClick={() => setEditingCatalog(true)}
         className="w-full rounded-xl border border-line bg-raised px-4 py-3 text-[13px] text-ink-soft"
       >
-        Revisar el catálogo de halajot y jumrot ({circle?.catalogKept ?? 0}/{circle?.catalogTotal ?? 0}) →
+        {t('Revisar el catálogo de halajot y jumrot')} ({circle?.catalogKept ?? 0}/{circle?.catalogTotal ?? 0}) →
       </button>
     </div>
   );
