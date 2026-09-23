@@ -15,9 +15,11 @@ import { baseMusarContext } from '../lib/musar/context';
 import { getParashaMusar, type ParashaMusar } from '../lib/musar/sefariaParasha';
 import { buildParashaShareImage, shareOrDownloadImage } from '../lib/musar/shareImage';
 import { Btn, Card, Field, SectionTitle, inputCls } from '../components/ui';
+import { useT } from '../lib/i18n';
 
 /** מוסר הפרשה — comentario en vivo desde Sefaria sobre la parashá de esta semana. */
 function ParashaMusarCard() {
+  const t = useT();
   const settings = useZury((s) => s.settings);
   const day = useZury((s) => s.day);
   const [data, setData] = useState<ParashaMusar | null | undefined>(undefined);
@@ -61,9 +63,9 @@ function ParashaMusarCard() {
         commentatorHe: data.commentatorHe,
       });
       const outcome = await shareOrDownloadImage(blob, `musar-${data.parashaEn}.png`, `מוסר הפרשה · ${data.parashaHe}`);
-      setShareMsg(outcome === 'downloaded' ? 'Imagen descargada — ábrela y compártela al estado de WhatsApp.' : '');
+      setShareMsg(outcome === 'downloaded' ? t('Imagen descargada — ábrela y compártela al estado de WhatsApp.') : '');
     } catch {
-      setShareMsg('No se pudo generar la imagen. Intenta de nuevo.');
+      setShareMsg(t('No se pudo generar la imagen. Intenta de nuevo.'));
     } finally {
       setSharing(false);
       setTimeout(() => setShareMsg(''), 5000);
@@ -75,12 +77,12 @@ function ParashaMusarCard() {
   return (
     <div>
       <div className="mb-2 flex items-baseline justify-between">
-        <div className="text-[12px] uppercase tracking-[0.16em] text-ink-faint">Musar de la parashá</div>
+        <div className="text-[12px] uppercase tracking-[0.16em] text-ink-faint">{t('Musar de la parashá')}</div>
         {data && <div className="hebrew text-lg text-gold">{data.parashaHe}</div>}
       </div>
       <Card className="space-y-3 p-5">
         {data === undefined ? (
-          <p className="text-center text-[12px] text-ink-faint">Buscando en Sefaria…</p>
+          <p className="text-center text-[12px] text-ink-faint">{t('Buscando en Sefaria…')}</p>
         ) : (
           <>
             <p className="hebrew text-right text-[15px] leading-relaxed text-ink" dir="rtl">
@@ -93,10 +95,10 @@ function ParashaMusarCard() {
               </p>
               <div className="flex gap-2">
                 <Btn variant="ghost" onClick={shareIt} disabled={sharing}>
-                  {sharing ? 'Generando…' : '📤 Compartir'}
+                  {sharing ? t('Generando…') : t('📤 Compartir')}
                 </Btn>
                 <Btn variant="ghost" onClick={saveIt}>
-                  Guardar
+                  {t('Guardar')}
                 </Btn>
               </div>
             </div>
@@ -119,11 +121,12 @@ function LineRow({
   fav: boolean;
   onFav: () => void;
 }) {
+  const t = useT();
   return (
     <div className="flex items-start gap-3 px-4 py-3">
       <button
         onClick={onFav}
-        aria-label={fav ? 'Quitar de favoritas' : 'Guardar como favorita'}
+        aria-label={fav ? t('Quitar de favoritas') : t('Guardar como favorita')}
         className={`mt-0.5 text-[15px] leading-none ${fav ? 'text-gold' : 'text-ink-faint'}`}
       >
         {fav ? '★' : '☆'}
@@ -138,7 +141,7 @@ function LineRow({
         {line.sourceEs && (
           <p className="mt-1 text-[10px] uppercase tracking-[0.14em] text-ink-faint">
             {line.sourceEs}
-            {line.mine ? ' · escrito por ti' : ''}
+            {line.mine ? t(' · escrito por ti') : ''}
           </p>
         )}
       </div>
@@ -152,6 +155,7 @@ function LineRow({
  * fuente, tus favoritas y la búsqueda.
  */
 export default function Musar() {
+  const t = useT();
   const { settings, day, saveSettings } = useZury();
   const [openTheme, setOpenTheme] = useState<MusarTheme | null>(null);
   const [nonce, setNonce] = useState(0);
@@ -190,26 +194,27 @@ export default function Musar() {
       fields: { _musar: { id: todayLine.id, theme: todayLine.theme } },
     });
     setReflection('');
-    setSavedMsg('Guardado en tus registros de hoy, en el área de Musar.');
+    setSavedMsg(t('Guardado en tus registros de hoy, en el área de Musar.'));
     setTimeout(() => setSavedMsg(''), 3500);
   }
 
   if (!settings) return null;
   const density = settings.musar?.density ?? 'clave';
-  const densityText =
+  const densityText = t(
     density === 'pie'
       ? 'Ahora la frase solo aparece al pie de las pantallas.'
       : density === 'maximo'
         ? 'La frase aparece al pie, en los momentos clave y en el tablero.'
-        : 'La frase aparece al pie y en los momentos clave del día.';
+        : 'La frase aparece al pie y en los momentos clave del día.',
+  );
 
   return (
     <div className="space-y-6">
-      <SectionTitle es="Musar · frases al hueso" he="מוּסָר" />
+      <SectionTitle es={t('Musar · frases al hueso')} he="מוּסָר" />
       <p className="-mt-3 text-[12px] leading-relaxed text-ink-faint">
-        Un recordatorio corto, elegido por lo que está pasando hoy: si caíste pesa la vuelta; en Elul
-        y en los Diez Días pesa la teshuvá; si no, rota entre poner a Hashem primero y no aflojar.
-        Se ajusta a tu nivel de exigencia.
+        {t(
+          'Un recordatorio corto, elegido por lo que está pasando hoy: si caíste pesa la vuelta; en Elul y en los Diez Días pesa la teshuvá; si no, rota entre poner a Hashem primero y no aflojar. Se ajusta a tu nivel de exigencia.',
+        )}
       </p>
 
       <ParashaMusarCard />
@@ -217,7 +222,7 @@ export default function Musar() {
       {/* Frase de hoy */}
       <div>
         <div className="mb-2 flex items-baseline justify-between">
-          <div className="text-[12px] uppercase tracking-[0.16em] text-ink-faint">Frase de hoy</div>
+          <div className="text-[12px] uppercase tracking-[0.16em] text-ink-faint">{t('Frase de hoy')}</div>
           <div className="hebrew text-lg text-gold">{MUSAR_THEMES[todayLine.theme].he}</div>
         </div>
         <Card className="space-y-3 p-5 text-center">
@@ -230,15 +235,15 @@ export default function Musar() {
           {todayLine.sourceEs && (
             <p className="text-[11px] uppercase tracking-[0.16em] text-ink-faint">
               {todayLine.sourceEs}
-              {todayLine.mine ? ' · escrito por ti' : ''}
+              {todayLine.mine ? t(' · escrito por ti') : ''}
             </p>
           )}
           <div className="flex items-center justify-center gap-2 pt-1">
             <Btn variant="ghost" onClick={() => setNonce((n) => n + 1)}>
-              Otra
+              {t('Otra')}
             </Btn>
             <Btn variant={favSet.has(todayLine.id) ? 'solid' : 'ghost'} onClick={() => toggleFav(todayLine.id)}>
-              {favSet.has(todayLine.id) ? '★ Favorita' : '☆ Guardar'}
+              {favSet.has(todayLine.id) ? t('★ Favorita') : t('☆ Guardar')}
             </Btn>
           </div>
         </Card>
@@ -246,23 +251,24 @@ export default function Musar() {
 
       {/* Seder musar */}
       <div>
-        <SectionTitle es="Asentarla · ~1 min" he="סֵדֶר מוּסָר" />
+        <SectionTitle es={t('Asentarla · ~1 min')} he="סֵדֶר מוּסָר" />
         <Card className="space-y-3 p-4">
           <p className="text-[12px] leading-relaxed text-ink-faint">
-            Léela despacio dos veces. Después escribe, en una línea, qué te pide a ti hoy — y guárdalo
-            como registro para volver a verlo.
+            {t(
+              'Léela despacio dos veces. Después escribe, en una línea, qué te pide a ti hoy — y guárdalo como registro para volver a verlo.',
+            )}
           </p>
-          <Field label="¿Qué me pide esta frase hoy?">
+          <Field label={t('¿Qué me pide esta frase hoy?')}>
             <textarea
               className={inputCls + ' resize-none'}
               rows={2}
               value={reflection}
               onChange={(e) => setReflection(e.target.value)}
-              placeholder="Una cosa concreta…"
+              placeholder={t('Una cosa concreta…')}
             />
           </Field>
           <Btn className="w-full" onClick={saveSeder} disabled={!reflection.trim()}>
-            Guardar como registro
+            {t('Guardar como registro')}
           </Btn>
           {savedMsg && <p className="text-center text-[12px] text-[var(--success)]">{savedMsg}</p>}
         </Card>
@@ -271,7 +277,7 @@ export default function Musar() {
       {/* Favoritas */}
       {favorites.length > 0 && (
         <div>
-          <SectionTitle es="Tus favoritas" he="נִבְחָרוֹת" />
+          <SectionTitle es={t('Tus favoritas')} he="נִבְחָרוֹת" />
           <Card className="divide-y divide-line">
             {favorites
               .map((id) => MUSAR_BY_ID[id])
@@ -285,16 +291,16 @@ export default function Musar() {
 
       {/* Temas */}
       <div>
-        <SectionTitle es="Las seis áreas del musar" he="שֵׁשׁ מִדּוֹת" />
+        <SectionTitle es={t('Las seis áreas del musar')} he="שֵׁשׁ מִדּוֹת" />
         <div className="space-y-2">
-          {THEME_ORDER.map((t) => {
-            const meta = MUSAR_THEMES[t];
-            const lines = linesForTheme(t, settings.strictness);
-            const open = openTheme === t;
+          {THEME_ORDER.map((theme) => {
+            const meta = MUSAR_THEMES[theme];
+            const lines = linesForTheme(theme, settings.strictness);
+            const open = openTheme === theme;
             return (
-              <Card key={t} className="overflow-hidden">
+              <Card key={theme} className="overflow-hidden">
                 <button
-                  onClick={() => setOpenTheme(open ? null : t)}
+                  onClick={() => setOpenTheme(open ? null : theme)}
                   className="flex w-full items-start gap-3 px-4 py-3 text-left"
                 >
                   <span className="min-w-0 flex-1">
@@ -327,17 +333,19 @@ export default function Musar() {
 
       {/* Buscar */}
       <div>
-        <SectionTitle es="Buscar" he="חִפּוּשׂ" />
+        <SectionTitle es={t('Buscar')} he="חִפּוּשׂ" />
         <input
           className={inputCls}
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Palabra, tema o fuente…"
+          placeholder={t('Palabra, tema o fuente…')}
         />
         {q.trim() && (
           <Card className="mt-2 divide-y divide-line">
             {results.length === 0 ? (
-              <p className="px-4 py-3 text-[12px] text-ink-faint">Nada con «{q.trim()}».</p>
+              <p className="px-4 py-3 text-[12px] text-ink-faint">
+                {t('Nada con')} «{q.trim()}»
+              </p>
             ) : (
               results.map((l) => (
                 <LineRow key={l.id} line={l} fav={favSet.has(l.id)} onFav={() => toggleFav(l.id)} />
@@ -350,7 +358,7 @@ export default function Musar() {
       <p className="text-center text-[11px] text-ink-faint">
         {densityText}{' '}
         <Link to="/ajustes#musar" className="text-gold">
-          cambiar
+          {t('cambiar')}
         </Link>
       </p>
     </div>

@@ -499,6 +499,86 @@ const DICT: Record<string, Entry> = {
   'Kabalot sostenidas': { en: 'Commitments kept', he: 'קבלות שנשמרו' },
   '% del catálogo': { en: '% of catalog', he: '% מהקטלוג' },
   'Revisar el catálogo de halajot y jumrot': { en: 'Review the catalog of halachot and chumrot', he: 'סקור את הקטלוג של ההלכות והחומרות' },
+
+  // Torá (biblioteca de Sefaria, Estudio/Musar/Comunidad)
+  Estudio: { en: 'Study', he: 'לימוד' },
+  Comunidad: { en: 'Community', he: 'קהילה' },
+  '‹ Biblioteca': { en: '‹ Library', he: '‹ ספרייה' },
+  'Un libro o cita: "Avot 2:5", "Rashi Genesis 1:1", "Rambam"': {
+    en: 'A book or reference: "Avot 2:5", "Rashi Genesis 1:1", "Rambam"',
+    he: 'ספר או מקור: "אבות ב:ה", "רש"י בראשית א:א", "רמב"ם"',
+  },
+  'Buscar en la biblioteca': { en: 'Search the library', he: 'חפש בספרייה' },
+  Buscar: { en: 'Search', he: 'חפש' },
+  'Sin resultados. Prueba con el nombre en inglés o transliterado (por ejemplo "Pirkei Avot", "Mishneh Torah", "Ramban on Genesis").': {
+    en: 'No results. Try the English or transliterated name (for example "Pirkei Avot", "Mishneh Torah", "Ramban on Genesis").',
+    he: 'אין תוצאות. נסה את השם באנגלית או בתעתיק (למשל "Pirkei Avot", "Mishneh Torah", "Ramban on Genesis").',
+  },
+  'Cargando lo de hoy…': { en: 'Loading today…', he: 'טוען את היום…' },
+  Reintentar: { en: 'Retry', he: 'נסה שוב' },
+  'No se pudo cargar.': { en: 'Could not load.', he: 'לא ניתן לטעון.' },
+  'No se pudo buscar.': { en: 'Could not search.', he: 'לא ניתן לחפש.' },
+  'Hoy en la Torá': { en: 'Today in the Torah', he: 'היום בתורה' },
+  Biblioteca: { en: 'Library', he: 'ספרייה' },
+  'Textos y comentarios de la biblioteca abierta de Sefaria (sefaria.org): miles de pirushim enlazados a cada pasuk, mishná y halajá. Sefaria no ofrece traducción al español; se muestra el hebreo y, cuando existe, la traducción al inglés. Necesita conexión a internet.': {
+    en: 'Texts and commentaries from the open library of Sefaria (sefaria.org): thousands of pirushim linked to every pasuk, mishnah and halacha. Sefaria does not offer a Spanish translation; the Hebrew is shown and, when it exists, the English translation. Needs an internet connection.',
+    he: 'טקסטים ופירושים מהספרייה הפתוחה של ספריא (sefaria.org): אלפי פירושים המקושרים לכל פסוק, משנה והלכה. ספריא אינה מציעה תרגום לספרדית; מוצג העברית, וכשקיים, גם התרגום לאנגלית. דורש חיבור לאינטרנט.',
+  },
+
+  // Musar
+  'Musar · frases al hueso': { en: 'Musar · to the point', he: 'מוסר · לעניין' },
+  'Un recordatorio corto, elegido por lo que está pasando hoy: si caíste pesa la vuelta; en Elul y en los Diez Días pesa la teshuvá; si no, rota entre poner a Hashem primero y no aflojar. Se ajusta a tu nivel de exigencia.': {
+    en: 'A short reminder, chosen for what is happening today: if you fell, the return weighs more; in Elul and the Ten Days, teshuva weighs more; otherwise, it rotates between putting Hashem first and not letting up. It adjusts to your level of demand.',
+    he: 'תזכורת קצרה, נבחרת לפי מה שקורה היום: אם נפלת, החזרה שוקלת יותר; באלול ובעשרת ימי תשובה, התשובה שוקלת יותר; אחרת, מתחלף בין להעמיד את ה׳ במקום ראשון לבין לא להרפות. מתאים לרמת הדרישה שלך.',
+  },
+  'Musar de la parashá': { en: 'Musar of the parasha', he: 'מוסר הפרשה' },
+  'Buscando en Sefaria…': { en: 'Searching Sefaria…', he: 'מחפש בספריא…' },
+  'Generando…': { en: 'Generating…', he: 'יוצר…' },
+  '📤 Compartir': { en: '📤 Share', he: '📤 שתף' },
+  'Imagen descargada — ábrela y compártela al estado de WhatsApp.': {
+    en: 'Image downloaded — open it and share it to your WhatsApp status.',
+    he: 'התמונה הורדה — פתח אותה ושתף אותה לסטטוס הוואטסאפ שלך.',
+  },
+  'No se pudo generar la imagen. Intenta de nuevo.': {
+    en: 'Could not generate the image. Try again.',
+    he: 'לא ניתן היה ליצור את התמונה. נסה שוב.',
+  },
+  'Frase de hoy': { en: 'Phrase of the day', he: 'המשפט של היום' },
+  Otra: { en: 'Another', he: 'עוד אחד' },
+  '★ Favorita': { en: '★ Favorite', he: '★ מועדף' },
+  '☆ Guardar': { en: '☆ Save', he: '☆ שמור' },
+  'Asentarla · ~1 min': { en: 'Settle it in · ~1 min', he: 'להטמיע · כ-1 דקה' },
+  'Léela despacio dos veces. Después escribe, en una línea, qué te pide a ti hoy — y guárdalo como registro para volver a verlo.': {
+    en: 'Read it slowly twice. Then write, in one line, what it asks of you today — and save it as an entry to come back to.',
+    he: 'קרא אותו לאט פעמיים. לאחר מכן כתוב, בשורה אחת, מה הוא מבקש ממך היום — ושמור אותו כרישום כדי לחזור אליו.',
+  },
+  '¿Qué me pide esta frase hoy?': { en: 'What does this phrase ask of me today?', he: 'מה המשפט הזה מבקש ממני היום?' },
+  'Una cosa concreta…': { en: 'One concrete thing…', he: 'דבר קונקרטי אחד…' },
+  'Guardar como registro': { en: 'Save as entry', he: 'שמור כרישום' },
+  'Guardado en tus registros de hoy, en el área de Musar.': {
+    en: 'Saved in today’s entries, under the Musar area.',
+    he: 'נשמר ברישומי היום, בתחום המוסר.',
+  },
+  'Tus favoritas': { en: 'Your favorites', he: 'המועדפים שלי' },
+  'Las seis áreas del musar': { en: 'The six areas of musar', he: 'שש מידות המוסר' },
+  'Palabra, tema o fuente…': { en: 'Word, topic or source…', he: 'מילה, נושא או מקור…' },
+  'Nada con': { en: 'Nothing with', he: 'שום דבר עם' },
+  'Quitar de favoritas': { en: 'Remove from favorites', he: 'הסר מהמועדפים' },
+  'Guardar como favorita': { en: 'Save as favorite', he: 'שמור כמועדף' },
+  ' · escrito por ti': { en: ' · written by you', he: ' · נכתב על ידך' },
+  'Ahora la frase solo aparece al pie de las pantallas.': {
+    en: 'Right now the phrase only appears at the bottom of the screens.',
+    he: 'כרגע המשפט מופיע רק בתחתית המסכים.',
+  },
+  'La frase aparece al pie, en los momentos clave y en el tablero.': {
+    en: 'The phrase appears at the bottom, at key moments, and on the dashboard.',
+    he: 'המשפט מופיע בתחתית, ברגעי מפתח ובלוח הבקרה.',
+  },
+  'La frase aparece al pie y en los momentos clave del día.': {
+    en: 'The phrase appears at the bottom and at key moments of the day.',
+    he: 'המשפט מופיע בתחתית וברגעי המפתח של היום.',
+  },
+  cambiar: { en: 'change', he: 'שנה' },
 };
 
 const CYCLE: Lang[] = ['es', 'en', 'he'];

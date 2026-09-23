@@ -13,6 +13,7 @@ import SefariaReader from '../components/SefariaReader';
 import Musar from './Musar';
 import { Comunidad, PublishCta } from '../components/Aportes';
 import { backendConfigured } from '../lib/supabase';
+import { useT } from '../lib/i18n';
 
 /** Lo que Sefaria llama "hoy", en el orden en que interesa y con nombre en español. */
 const TODAY: { match: string; es: string }[] = [
@@ -81,6 +82,7 @@ const SHELVES: { es: string; he: string; items: { es: string; ref: string }[] }[
 ];
 
 function TodayCards({ onOpen }: { onOpen: (ref: string) => void }) {
+  const t = useT();
   const israel = useZury((s) => s.settings?.location.israel ?? false);
   const [items, setItems] = useState<CalendarItem[] | null>(null);
   const [error, setError] = useState('');
@@ -101,18 +103,18 @@ function TodayCards({ onOpen }: { onOpen: (ref: string) => void }) {
   if (error) {
     return (
       <Card className="space-y-2 p-4">
-        <p className="text-[13px] text-[var(--danger)]">{error}</p>
-        <Btn variant="ghost" onClick={() => setTick((t) => t + 1)}>
-          Reintentar
+        <p className="text-[13px] text-[var(--danger)]">{t(error)}</p>
+        <Btn variant="ghost" onClick={() => setTick((n) => n + 1)}>
+          {t('Reintentar')}
         </Btn>
       </Card>
     );
   }
-  if (!items) return <p className="text-[13px] text-ink-faint">Cargando lo de hoy…</p>;
+  if (!items) return <p className="text-[13px] text-ink-faint">{t('Cargando lo de hoy…')}</p>;
 
-  const rows = TODAY.flatMap((t) => {
-    const it = items.find((i) => i.title === t.match && i.ref);
-    return it ? [{ ...t, item: it }] : [];
+  const rows = TODAY.flatMap((td) => {
+    const it = items.find((i) => i.title === td.match && i.ref);
+    return it ? [{ ...td, item: it }] : [];
   });
 
   return (
@@ -131,6 +133,7 @@ function TodayCards({ onOpen }: { onOpen: (ref: string) => void }) {
 }
 
 function Searcher({ onOpen }: { onOpen: (ref: string) => void }) {
+  const t = useT();
   const [q, setQ] = useState('');
   const [hits, setHits] = useState<SearchHit[] | null>(null);
   const [busy, setBusy] = useState(false);
@@ -160,17 +163,17 @@ function Searcher({ onOpen }: { onOpen: (ref: string) => void }) {
           className={inputCls}
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder='Un libro o cita: "Avot 2:5", "Rashi Genesis 1:1", "Rambam"'
-          aria-label="Buscar en la biblioteca"
+          placeholder={t('Un libro o cita: "Avot 2:5", "Rashi Genesis 1:1", "Rambam"')}
+          aria-label={t('Buscar en la biblioteca')}
         />
         <Btn type="submit" disabled={busy}>
-          {busy ? '…' : 'Buscar'}
+          {busy ? '…' : t('Buscar')}
         </Btn>
       </form>
-      {error && <p className="text-[13px] text-[var(--danger)]">{error}</p>}
+      {error && <p className="text-[13px] text-[var(--danger)]">{t(error)}</p>}
       {hits && hits.length === 0 && (
         <p className="text-[13px] text-ink-faint">
-          Sin resultados. Prueba con el nombre en inglés o transliterado (por ejemplo "Pirkei Avot", "Mishneh Torah", "Ramban on Genesis").
+          {t('Sin resultados. Prueba con el nombre en inglés o transliterado (por ejemplo "Pirkei Avot", "Mishneh Torah", "Ramban on Genesis").')}
         </p>
       )}
       {hits && hits.length > 0 && (
@@ -191,6 +194,7 @@ function Searcher({ onOpen }: { onOpen: (ref: string) => void }) {
 }
 
 function Estudio() {
+  const t = useT();
   const [params, setParams] = useSearchParams();
   const ref = params.get('ref');
 
@@ -206,7 +210,7 @@ function Estudio() {
     return (
       <div className="space-y-4">
         <Btn variant="quiet" onClick={() => open(null)}>
-          ‹ Biblioteca
+          {t('‹ Biblioteca')}
         </Btn>
         <SefariaReader ref_={ref} onOpen={open} />
       </div>
@@ -218,12 +222,12 @@ function Estudio() {
       <Searcher onOpen={open} />
 
       <section>
-        <SectionTitle es="Hoy en la Torá" he="היום" />
+        <SectionTitle es={t('Hoy en la Torá')} he="היום" />
         <TodayCards onOpen={open} />
       </section>
 
       <section className="space-y-4">
-        <SectionTitle es="Biblioteca" he="ספרייה" />
+        <SectionTitle es={t('Biblioteca')} he="ספרייה" />
         {SHELVES.map((s) => (
           <div key={s.es}>
             <div className="mb-1.5 flex items-baseline gap-2">
@@ -246,9 +250,9 @@ function Estudio() {
       </section>
 
       <p className="text-[11px] leading-relaxed text-ink-faint">
-        Textos y comentarios de la biblioteca abierta de Sefaria (sefaria.org): miles de pirushim enlazados a cada
-        pasuk, mishná y halajá. Sefaria no ofrece traducción al español; se muestra el hebreo y, cuando existe, la
-        traducción al inglés. Necesita conexión a internet.
+        {t(
+          'Textos y comentarios de la biblioteca abierta de Sefaria (sefaria.org): miles de pirushim enlazados a cada pasuk, mishná y halajá. Sefaria no ofrece traducción al español; se muestra el hebreo y, cuando existe, la traducción al inglés. Necesita conexión a internet.',
+        )}
       </p>
     </div>
   );
@@ -260,9 +264,10 @@ function Estudio() {
  * Arriba, siempre a la vista, el botón para publicar uno.
  */
 export default function Tora() {
+  const t = useT();
   const [params, setParams] = useSearchParams();
-  const t = params.get('t');
-  const tab = t === 'musar' ? 'musar' : t === 'comunidad' && backendConfigured ? 'comunidad' : 'estudio';
+  const tParam = params.get('t');
+  const tab = tParam === 'musar' ? 'musar' : tParam === 'comunidad' && backendConfigured ? 'comunidad' : 'estudio';
   const [refreshKey, setRefreshKey] = useState(0);
   const tabs: (readonly [string, string])[] = [
     ['estudio', 'Estudio'],
@@ -272,7 +277,7 @@ export default function Tora() {
 
   return (
     <div className="space-y-4">
-      <SectionTitle es="Torá" he="תורה" />
+      <SectionTitle es={t('Torá')} he="תורה" />
       {backendConfigured && (
         <PublishCta
           onSent={() => {
@@ -288,7 +293,7 @@ export default function Tora() {
             onClick={() => setParams({ t: id })}
             className={`rounded-lg py-2 transition-colors ${tab === id ? 'bg-gold font-medium text-[#1a140a]' : 'text-ink-soft'}`}
           >
-            {label}
+            {t(label)}
           </button>
         ))}
       </div>
