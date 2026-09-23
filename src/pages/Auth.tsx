@@ -4,6 +4,8 @@ import { backendConfigured } from '../lib/supabase';
 import { getStoredReferral } from '../lib/referral';
 import { AuthError, MIN_PASSWORD, login, recoveryLinkError, register, requestPasswordReset } from '../lib/auth/accounts';
 import { Btn, Field, inputCls } from '../components/ui';
+import { useZury } from '../state/zury';
+import { useLang, useT } from '../lib/i18n';
 
 /**
  * Puerta de entrada: crear cuenta o entrar. Se muestra antes de cargar la app.
@@ -39,6 +41,15 @@ function rememberAccountHere(): void {
 }
 
 export default function Auth() {
+  const t = useT();
+  const lang = useLang();
+  const saveSettings = useZury((s) => s.saveSettings);
+  // La store todavía no se inicializó aquí (Auth se muestra antes que App/init()): se trae el
+  // idioma guardado (si lo hay) para que el botón refleje la última preferencia, no siempre 'es'.
+  useEffect(() => {
+    void useZury.getState().reloadSettings();
+  }, []);
+
   const [after] = useState(readAfterReset);
   // Quien ya tuvo cuenta en este dispositivo (y no llega por un enlace de invitación) ve "Entrar" primero.
   const [mode, setMode] = useState<'login' | 'registro' | 'recuperar'>(
@@ -105,22 +116,42 @@ export default function Auth() {
   return (
     <div className="grid min-h-full place-items-center bg-bg px-6 py-10">
       <div className="w-full max-w-sm">
+        <div className="mb-2 flex justify-end">
+          <button
+            type="button"
+            onClick={() =>
+              void saveSettings({ language: lang === 'en' ? 'es' : 'en' }).then(() => {
+                // saveSettings también ajusta el tema día/noche según la hora real; esta pantalla
+                // siempre se queda en modo noche, así que se vuelve a forzar después de guardar.
+                document.documentElement.dataset.mode = 'night';
+              })
+            }
+            className="flex items-center gap-1 rounded-full border border-line bg-raised px-2.5 py-1 text-[11px] text-gold"
+            aria-label={lang === 'en' ? 'Cambiar a español' : 'Switch to English'}
+            title={lang === 'en' ? 'Cambiar a español' : 'Switch to English'}
+          >
+            <span>🌐</span>
+            <span>{lang === 'en' ? 'EN' : 'ES'}</span>
+          </button>
+        </div>
         <div className="mb-8 text-center">
           <div className="hebrew text-3xl leading-snug text-gold">לעבוד את ה׳ בכל דרכיך</div>
           <div className="mt-2 text-[11px] uppercase tracking-[0.18em] text-ink-faint">Avodah</div>
         </div>
 
         <div className="mb-4 rounded-2xl border border-gold/60 bg-raised p-4">
-          <div className="text-[12px] font-medium uppercase tracking-[0.16em] text-gold">Tu información es privada</div>
+          <div className="text-[12px] font-medium uppercase tracking-[0.16em] text-gold">{t('Tu información es privada')}</div>
           <p className="mt-1.5 text-[13.5px] leading-relaxed text-ink">
-            Tus registros, caídas, metas y kabalot se guardan <strong>solo en tu dispositivo</strong>. Solo tú puedes verlos:
-            nadie más, ni los administradores de la app ni quien la creó.
+            {t('Tus registros, caídas, metas y kabalot se guardan')} <strong>{t('solo en tu dispositivo')}</strong>
+            {t('. Solo tú puedes verlos: nadie más, ni los administradores de la app ni quien la creó.')}
           </p>
           <p className="mt-2 text-[11.5px] leading-relaxed text-ink-soft">
             {backendConfigured
-              ? 'Al servidor solo van tu nombre, tu correo, tu género, cuándo entras a la app y que registraste algo (para saber cuánta gente la usa). Nunca lo que registras.'
-              : 'Modo de prueba: nada sale de este dispositivo.'}{' '}
-            La IA es opcional y viene apagada; solo si tú la activas, el texto que elijas analizar se envía a Anthropic.
+              ? t(
+                  'Al servidor solo van tu nombre, tu correo, tu género, cuándo entras a la app y que registraste algo (para saber cuánta gente la usa). Nunca lo que registras.',
+                )
+              : t('Modo de prueba: nada sale de este dispositivo.')}{' '}
+            {t('La IA es opcional y viene apagada; solo si tú la activas, el texto que elijas analizar se envía a Anthropic.')}
           </p>
         </div>
 
@@ -143,20 +174,20 @@ export default function Auth() {
               }}
               className={`rounded-lg py-2 transition-colors ${mode === m || (m === 'login' && mode === 'recuperar') ? 'bg-gold font-medium text-[#1a140a]' : 'text-ink-soft'}`}
             >
-              {m === 'registro' ? 'Crear cuenta' : 'Entrar'}
+              {m === 'registro' ? t('Crear cuenta') : t('Entrar')}
             </button>
           ))}
         </div>
 
         <form onSubmit={submit} className="sefer-frame space-y-4 rounded-2xl border border-line bg-raised p-5">
           {mode === 'registro' && (
-            <Field label="Nombre">
+            <Field label={t('Nombre')}>
               <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" required />
             </Field>
           )}
           {mode === 'registro' && (
             <div>
-              <span className="mb-1 block text-[13px] font-medium text-ink-soft">Eres</span>
+              <span className="mb-1 block text-[13px] font-medium text-ink-soft">{t('Eres')}</span>
               <div className="grid grid-cols-2 gap-2">
                 {(['hombre', 'mujer'] as const).map((g) => (
                   <button
@@ -170,16 +201,16 @@ export default function Auth() {
                         : 'border-line bg-raised text-ink-soft hover:border-gold'
                     }`}
                   >
-                    {g === 'hombre' ? 'Hombre' : 'Mujer'}
+                    {g === 'hombre' ? t('Hombre') : t('Mujer')}
                   </button>
                 ))}
               </div>
               <span className="mt-1 block text-[11px] text-ink-faint">
-                Según la halajá, las mitzvot y las preguntas que verás son distintas para hombres y mujeres.
+                {t('Según la halajá, las mitzvot y las preguntas que verás son distintas para hombres y mujeres.')}
               </span>
             </div>
           )}
-          <Field label="Correo">
+          <Field label={t('Correo')}>
             <input
               className={inputCls}
               type="email"
@@ -190,7 +221,7 @@ export default function Auth() {
             />
           </Field>
           {mode !== 'recuperar' && (
-          <Field label="Contraseña" hint={mode === 'registro' ? `Mínimo ${MIN_PASSWORD} caracteres.` : undefined}>
+          <Field label={t('Contraseña')} hint={mode === 'registro' ? `${t('Mínimo')} ${MIN_PASSWORD} ${t('caracteres.')}` : undefined}>
             <input
               className={inputCls}
               type="password"
@@ -211,30 +242,38 @@ export default function Auth() {
               }}
               className="block text-[14px] text-gold underline underline-offset-2"
             >
-              ¿Olvidaste tu contraseña?
+              {t('¿Olvidaste tu contraseña?')}
             </button>
           )}
           {mode === 'recuperar' && (
-            <p className="text-[12px] text-ink-faint">Escribe tu correo y te mandamos un enlace para crear una contraseña nueva.</p>
+            <p className="text-[12px] text-ink-faint">{t('Escribe tu correo y te mandamos un enlace para crear una contraseña nueva.')}</p>
           )}
           {error && <p className="text-[13px] text-[var(--danger)]">{error}</p>}
           {notice && <p className="text-[13px] text-[var(--success)]">{notice}</p>}
           <Btn type="submit" disabled={busy || (mode === 'recuperar' && cooldown > 0)} className="w-full">
-            {busy ? '…' : mode === 'registro' ? 'Crear mi cuenta' : mode === 'recuperar' ? (cooldown > 0 ? `Espera ${cooldown} s` : 'Enviar enlace') : 'Entrar'}
+            {busy
+              ? '…'
+              : mode === 'registro'
+                ? t('Crear mi cuenta')
+                : mode === 'recuperar'
+                  ? cooldown > 0
+                    ? `${t('Espera')} ${cooldown} s`
+                    : t('Enviar enlace')
+                  : t('Entrar')}
           </Btn>
         </form>
 
         {mode === 'registro' && (
           <p className="mt-3 text-center text-[13px] text-ink-soft">
-            ¿Ya tienes cuenta?{' '}
+            {t('¿Ya tienes cuenta?')}{' '}
             <button type="button" onClick={() => switchTo('login')} className="text-gold underline underline-offset-2">
-              Entrar
+              {t('Entrar')}
             </button>
             {backendConfigured && (
               <>
                 {' · '}
                 <button type="button" onClick={() => switchTo('recuperar')} className="text-gold underline underline-offset-2">
-                  Olvidé mi contraseña
+                  {t('Olvidé mi contraseña')}
                 </button>
               </>
             )}
@@ -243,15 +282,17 @@ export default function Auth() {
         {mode === 'recuperar' && (
           <p className="mt-3 text-center text-[13px] text-ink-soft">
             <button type="button" onClick={() => switchTo('login')} className="text-gold underline underline-offset-2">
-              ‹ Volver a entrar
+              {t('‹ Volver a entrar')}
             </button>
           </p>
         )}
 
         <p className="mt-4 text-center text-[12px] leading-relaxed text-ink-faint">
           {backendConfigured
-            ? 'Puedes entrar a tu cuenta desde cualquier dispositivo, pero tus registros viven solo en el que los creó: expórtalos seguido desde Ajustes.'
-            : 'Modo de prueba: tu cuenta y tus registros se guardan solo en este dispositivo.'}
+            ? t(
+                'Puedes entrar a tu cuenta desde cualquier dispositivo, pero tus registros viven solo en el que los creó: expórtalos seguido desde Ajustes.',
+              )
+            : t('Modo de prueba: tu cuenta y tus registros se guardan solo en este dispositivo.')}
         </p>
       </div>
     </div>

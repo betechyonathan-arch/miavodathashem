@@ -89,6 +89,43 @@ const DICT: Record<string, string> = {
   'Creando…': 'Creating…',
   'Te retaron a esto. ¿Aceptas?': 'You were challenged to this. Do you accept?',
   '¿Dejar este reto?': 'Leave this challenge?',
+
+  // Auth (entrar / crear cuenta)
+  'Tu información es privada': 'Your information is private',
+  'Tus registros, caídas, metas y kabalot se guardan': 'Your entries, falls, goals and commitments are stored',
+  'solo en tu dispositivo': 'only on your device',
+  '. Solo tú puedes verlos: nadie más, ni los administradores de la app ni quien la creó.':
+    '. Only you can see them: no one else — not the app’s admins, not even whoever built it.',
+  'Al servidor solo van tu nombre, tu correo, tu género, cuándo entras a la app y que registraste algo (para saber cuánta gente la usa). Nunca lo que registras.':
+    'Only your name, email, gender, when you open the app, and that you logged something (to know how many people use it) go to the server. Never what you log.',
+  'Modo de prueba: nada sale de este dispositivo.': 'Test mode: nothing leaves this device.',
+  'La IA es opcional y viene apagada; solo si tú la activas, el texto que elijas analizar se envía a Anthropic.':
+    "AI is optional and off by default; only if you turn it on, the text you choose to analyze is sent to Anthropic.",
+  'Crear cuenta': 'Create account',
+  Entrar: 'Log in',
+  Nombre: 'Name',
+  Eres: 'You are',
+  Hombre: 'Man',
+  Mujer: 'Woman',
+  'Según la halajá, las mitzvot y las preguntas que verás son distintas para hombres y mujeres.':
+    'By halacha, the mitzvot and questions you’ll see are different for men and women.',
+  Correo: 'Email',
+  Contraseña: 'Password',
+  '¿Olvidaste tu contraseña?': 'Forgot your password?',
+  'Escribe tu correo y te mandamos un enlace para crear una contraseña nueva.':
+    'Write your email and we’ll send you a link to set a new password.',
+  'Crear mi cuenta': 'Create my account',
+  'Enviar enlace': 'Send link',
+  '¿Ya tienes cuenta?': 'Already have an account?',
+  'Olvidé mi contraseña': 'I forgot my password',
+  '‹ Volver a entrar': '‹ Back to log in',
+  'Puedes entrar a tu cuenta desde cualquier dispositivo, pero tus registros viven solo en el que los creó: expórtalos seguido desde Ajustes.':
+    'You can log into your account from any device, but your entries only live on the one that created them: export them often from Settings.',
+  'Modo de prueba: tu cuenta y tus registros se guardan solo en este dispositivo.':
+    'Test mode: your account and entries are stored only on this device.',
+  Mínimo: 'Minimum',
+  'caracteres.': 'characters.',
+  Espera: 'Wait',
 };
 
 /** Traduce un texto en español al idioma pedido. Si no está en el diccionario, se queda igual. */
