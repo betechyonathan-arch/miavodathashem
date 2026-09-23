@@ -5,7 +5,7 @@ import { getStoredReferral } from '../lib/referral';
 import { AuthError, MIN_PASSWORD, login, recoveryLinkError, register, requestPasswordReset } from '../lib/auth/accounts';
 import { Btn, Field, inputCls } from '../components/ui';
 import { useZury } from '../state/zury';
-import { useLang, useT } from '../lib/i18n';
+import { LANG_LABEL, langSwitchTitle, nextLang, useLang, useT } from '../lib/i18n';
 
 /**
  * Puerta de entrada: crear cuenta o entrar. Se muestra antes de cargar la app.
@@ -120,18 +120,18 @@ export default function Auth() {
           <button
             type="button"
             onClick={() =>
-              void saveSettings({ language: lang === 'en' ? 'es' : 'en' }).then(() => {
+              void saveSettings({ language: nextLang(lang) }).then(() => {
                 // saveSettings también ajusta el tema día/noche según la hora real; esta pantalla
                 // siempre se queda en modo noche, así que se vuelve a forzar después de guardar.
                 document.documentElement.dataset.mode = 'night';
               })
             }
             className="flex items-center gap-1 rounded-full border border-line bg-raised px-2.5 py-1 text-[11px] text-gold"
-            aria-label={lang === 'en' ? 'Cambiar a español' : 'Switch to English'}
-            title={lang === 'en' ? 'Cambiar a español' : 'Switch to English'}
+            aria-label={langSwitchTitle(lang)}
+            title={langSwitchTitle(lang)}
           >
             <span>🌐</span>
-            <span>{lang === 'en' ? 'EN' : 'ES'}</span>
+            <span>{LANG_LABEL[lang]}</span>
           </button>
         </div>
         <div className="mb-8 text-center">
