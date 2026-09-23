@@ -3,6 +3,7 @@ import { useZury } from '../state/zury';
 import { Card, SectionTitle } from '../components/ui';
 import { getSession } from '../lib/auth/session';
 import { getGender } from '../lib/gender';
+import { useT } from '../lib/i18n';
 
 interface Row {
   he: string;
@@ -84,6 +85,7 @@ const GROUPS: Group[] = [
 export default function Menu() {
   const navigate = useNavigate();
   const day = useZury((s) => s.day);
+  const t = useT();
 
   function go(row: Row) {
     if (row.action === 'registrar') {
@@ -104,15 +106,15 @@ export default function Menu() {
 
   return (
     <div className="space-y-6">
-      <SectionTitle es="Todo lo que hay" he="מַפְתֵּחַ" />
+      <SectionTitle es={t('Todo lo que hay')} he="מַפְתֵּחַ" />
       <p className="-mt-3 text-[12px] leading-relaxed text-ink-faint">
-        Cada pantalla y cada opción de la app, en un solo lugar. Toca para ir directo.
+        {t('Cada pantalla y cada opción de la app, en un solo lugar. Toca para ir directo.')}
       </p>
 
       {GROUPS.map((g) => (
         <div key={g.es}>
           <div className="mb-2 flex items-baseline justify-between">
-            <div className="text-[12px] uppercase tracking-[0.16em] text-ink-faint">{g.es}</div>
+            <div className="text-[12px] uppercase tracking-[0.16em] text-ink-faint">{t(g.es)}</div>
             <div className="hebrew text-lg text-gold">{g.he}</div>
           </div>
           <Card className="divide-y divide-line">
@@ -125,9 +127,9 @@ export default function Menu() {
                 <span className="min-w-0 flex-1">
                   <span className="flex items-baseline gap-2">
                     <span className="hebrew text-[16px] text-ink">{r.he}</span>
-                    <span className="text-[12px] text-ink-soft">{r.es}</span>
+                    <span className="text-[12px] text-ink-soft">{t(r.es)}</span>
                   </span>
-                  <span className="mt-0.5 block text-[11px] leading-relaxed text-ink-faint">{r.desc}</span>
+                  <span className="mt-0.5 block text-[11px] leading-relaxed text-ink-faint">{t(r.desc)}</span>
                 </span>
                 <span className="mt-1 text-ink-faint">›</span>
               </button>

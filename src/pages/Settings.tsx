@@ -16,6 +16,7 @@ import { InstallSection } from '../components/InstallApp';
 import { SCHEMA_VERSION } from '../lib/db/schema';
 import { getSession } from '../lib/auth/session';
 import { logout, updateGender } from '../lib/auth/accounts';
+import { useT } from '../lib/i18n';
 
 const MUSAR_THEME_CHIPS: [string, string][] = [
   ['prioridad', 'Hashem primero'],
@@ -36,6 +37,7 @@ const SYNC_TEXT: Record<string, string> = {
 };
 
 export default function Settings() {
+  const t = useT();
   const { settings, saveSettings, day } = useZury();
   const { status: syncStatus, lastSyncAt, error: syncError } = useSync();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -71,23 +73,23 @@ export default function Settings() {
   const setLoc = (p: Partial<typeof loc>) => saveSettings({ location: { ...loc, ...p } });
 
   const INDEX = [
-    ['ubicacion', 'Ubicación'],
-    ['dia', 'Día judío'],
-    ['ambiente', 'Ambiente'],
-    ['exigencia', 'Exigencia'],
-    ['musar', 'Musar'],
-    ['boleta', 'Boletas'],
-    ['recordatorios', 'Recordatorios'],
-    ['instalar', 'Instalar'],
-    ['ia', 'IA'],
-    ['nube', 'Nube'],
-    ['cuenta', 'Cuenta'],
-    ['datos', 'Datos'],
+    ['ubicacion', t('Ubicación')],
+    ['dia', t('Día judío')],
+    ['ambiente', t('Ambiente')],
+    ['exigencia', t('Exigencia del sistema')],
+    ['musar', t('Musar')],
+    ['boleta', t('Boletas')],
+    ['recordatorios', t('Recordatorios')],
+    ['instalar', t('Instalar')],
+    ['ia', t('IA')],
+    ['nube', t('Nube')],
+    ['cuenta', t('Cuenta')],
+    ['datos', t('Datos')],
   ];
 
   return (
     <div className="space-y-4">
-      <SectionTitle es="Ajustes" he="הגדרות" />
+      <SectionTitle es={t('Ajustes')} he="הגדרות" />
 
       {/* Índice — salta a cualquier sección */}
       <div className="-mx-4 overflow-x-auto px-4">
@@ -105,18 +107,18 @@ export default function Settings() {
       </div>
 
       <Card className="space-y-3 p-4">
-        <Field label="Nombre para mostrar (privado, solo en tu dispositivo)">
+        <Field label={t('Nombre para mostrar (privado, solo en tu dispositivo)')}>
           <input className={inputCls} value={settings.displayName} onChange={(e) => set({ displayName: e.target.value })} />
         </Field>
       </Card>
 
       <Card as="section" id="ubicacion" className="scroll-mt-24 space-y-3 p-4">
-        <SectionTitle es="Ubicación (cálculos halájicos)" he="מיקום" />
-        <Field label="Etiqueta">
+        <SectionTitle es={t('Ubicación (cálculos halájicos)')} he="מיקום" />
+        <Field label={t('Etiqueta')}>
           <input className={inputCls} value={loc.label} onChange={(e) => setLoc({ label: e.target.value })} />
         </Field>
         <div className="grid grid-cols-2 gap-2">
-          <Field label="Latitud">
+          <Field label={t('Latitud')}>
             <input
               type="number"
               step="0.0001"
@@ -125,7 +127,7 @@ export default function Settings() {
               onChange={(e) => setLoc({ latitude: Number(e.target.value) })}
             />
           </Field>
-          <Field label="Longitud">
+          <Field label={t('Longitud')}>
             <input
               type="number"
               step="0.0001"
@@ -136,10 +138,10 @@ export default function Settings() {
           </Field>
         </div>
         <div className="grid grid-cols-2 gap-2">
-          <Field label="Zona horaria (tzid)">
+          <Field label={t('Zona horaria (tzid)')}>
             <input className={inputCls} value={loc.tzid} onChange={(e) => setLoc({ tzid: e.target.value })} />
           </Field>
-          <Field label="Elevación (m)">
+          <Field label={t('Elevación (m)')}>
             <input
               type="number"
               className={inputCls}
@@ -150,7 +152,7 @@ export default function Settings() {
         </div>
         <label className="flex items-center gap-2 text-[13px] text-ink-soft">
           <input type="checkbox" checked={loc.israel} onChange={(e) => setLoc({ israel: e.target.checked })} />
-          Estoy en Eretz Israel (afecta Yom Tov de un día vs. dos)
+          {t('Estoy en Eretz Israel (afecta Yom Tov de un día vs. dos)')}
         </label>
         <button
           className="text-[12px] text-gold"
@@ -169,12 +171,12 @@ export default function Settings() {
             });
           }}
         >
-          Usar mi ubicación actual
+          {t('Usar mi ubicación actual')}
         </button>
       </Card>
 
       <Card as="section" id="dia" className="scroll-mt-24 space-y-3 p-4">
-        <SectionTitle es="Límite del día judío" he="גבול היום" />
+        <SectionTitle es={t('Límite del día judío')} he="גבול היום" />
         <Field
           label="Fecha hebrea que se MUESTRA"
           hint="Solo afecta el número de fecha en el calendario, el encabezado y los yahrzeits. Shabat, festivos, el tema y el día bajo el que se guardan los registros siempre cambian al anochecer."
@@ -245,8 +247,8 @@ export default function Settings() {
       </Card>
 
       <Card as="section" id="ambiente" className="scroll-mt-24 space-y-3 p-4">
-        <SectionTitle es="Ambiente" he="מראה" />
-        <Field label="Tema día / noche">
+        <SectionTitle es={t('Ambiente')} he="מראה" />
+        <Field label={t('Tema día / noche')}>
           <select
             className={inputCls}
             value={settings.themeOverride}
@@ -259,13 +261,13 @@ export default function Settings() {
         </Field>
         <label className="flex items-center gap-2 text-[13px] text-ink-soft">
           <input type="checkbox" checked={settings.shabbatMode} onChange={(e) => set({ shabbatMode: e.target.checked })} />
-          Modo Shabat: la app no pide nada en Shabat/Yom Tov
+          {t('Modo Shabat: la app no pide nada en Shabat/Yom Tov')}
         </label>
       </Card>
 
       <Card as="section" id="exigencia" className="scroll-mt-24 space-y-3 p-4">
-        <SectionTitle es="Exigencia del sistema" he="דין" />
-        <Field label="¿Qué tan duro contigo?">
+        <SectionTitle es={t('Exigencia del sistema')} he="דין" />
+        <Field label={t('¿Qué tan duro contigo?')}>
           <select
             className={inputCls}
             value={settings.strictness}
@@ -284,8 +286,8 @@ export default function Settings() {
       </Card>
 
       <Card as="section" id="musar" className="scroll-mt-24 space-y-3 p-4">
-        <SectionTitle es="Musar — frases al hueso" he="מוסר" />
-        <Field label="¿Cuánta presencia?">
+        <SectionTitle es={t('Musar — frases al hueso')} he="מוסר" />
+        <Field label={t('¿Cuánta presencia?')}>
           <select
             className={inputCls}
             value={settings.musar.density}
@@ -349,7 +351,7 @@ export default function Settings() {
       </Card>
 
       <Card as="section" id="boleta" className="scroll-mt-24 space-y-3 p-4">
-        <SectionTitle es="Boletas" he="תעודות" />
+        <SectionTitle es={t('Boletas')} he="תעודות" />
         <label className="flex items-start gap-3">
           <input
             type="checkbox"
@@ -406,7 +408,7 @@ export default function Settings() {
       </section>
 
       <Card as="section" id="nube" className="scroll-mt-24 space-y-3 p-4">
-        <SectionTitle es="Copia en la nube" he="גיבוי בענן" />
+        <SectionTitle es={t('Copia en la nube')} he="גיבוי בענן" />
         <div className="rounded-xl bg-sunken p-3 text-[12px]">
           <div className={syncStatus === 'error' ? 'text-[var(--danger)]' : 'text-ink-soft'}>
             {SYNC_TEXT[syncStatus] ?? syncStatus}
@@ -421,7 +423,7 @@ export default function Settings() {
         </div>
         {isConfigured ? (
           <Btn variant="ghost" onClick={() => void syncNow()}>
-            Sincronizar ahora
+            {t('Sincronizar ahora')}
           </Btn>
         ) : (
           <p className="text-[11px] text-ink-faint">
@@ -439,17 +441,17 @@ export default function Settings() {
       </Card>
 
       <Card as="section" id="cuenta" className="scroll-mt-24 space-y-3 p-4">
-        <SectionTitle es="Tu cuenta" he="החשבון שלך" />
+        <SectionTitle es={t('Tu cuenta')} he="החשבון שלך" />
         <p className="text-[14px] text-ink">
           {session?.name} <span className="text-ink-faint">· {session?.email}</span>
           {session?.isAdmin && <span className="ms-2 rounded bg-gold px-1.5 py-0.5 text-[10px] font-medium uppercase text-[#1a140a]">admin</span>}
         </p>
         {session?.isAdmin && (
           <Link to="/admin" className="inline-block text-[13px] font-medium text-gold">
-            Abrir el panel de administración ›
+            {t('Abrir el panel de administración ›')}
           </Link>
         )}
-        <Field label="Eres" hint="Cambia qué mitzvot, caídas y preguntas ves. La app se recarga.">
+        <Field label={t('Eres')} hint="Cambia qué mitzvot, caídas y preguntas ves. La app se recarga.">
           <select
             className={inputCls}
             value={session?.gender ?? 'hombre'}
@@ -462,8 +464,8 @@ export default function Settings() {
               }
             }}
           >
-            <option value="hombre">Hombre</option>
-            <option value="mujer">Mujer</option>
+            <option value="hombre">{t('Hombre')}</option>
+            <option value="mujer">{t('Mujer')}</option>
           </select>
         </Field>
         <Btn
@@ -473,22 +475,22 @@ export default function Settings() {
             window.location.replace('/');
           }}
         >
-          Cerrar sesión
+          {t('Cerrar sesión')}
         </Btn>
       </Card>
 
       <Card as="section" id="datos" className="scroll-mt-24 space-y-3 p-4">
-        <SectionTitle es="Tus datos" he="הנתונים שלך" />
+        <SectionTitle es={t('Tus datos')} he="הנתונים שלך" />
         <div className="flex flex-wrap gap-2">
           <Btn variant="ghost" onClick={async () => download(await exportAll(), `zury-avodah-${new Date().toISOString().slice(0, 10)}.json`)}>
-            Exportar todo (JSON)
+            {t('Exportar todo (JSON)')}
           </Btn>
           <Btn variant="ghost" onClick={() => fileRef.current?.click()}>
-            Importar
+            {t('Importar')}
           </Btn>
           <select className={inputCls + ' w-auto'} value={importMode} onChange={(e) => setImportMode(e.target.value as 'merge' | 'replace')}>
-            <option value="merge">Fusionar</option>
-            <option value="replace">Reemplazar</option>
+            <option value="merge">{t('Fusionar')}</option>
+            <option value="replace">{t('Reemplazar')}</option>
           </select>
         </div>
         <input
@@ -518,7 +520,7 @@ export default function Settings() {
             }
           }}
         >
-          Borrar todo
+          {t('Borrar todo')}
         </Btn>
         <p className="text-[11px] text-ink-faint">
           Tus datos viven solo en este dispositivo (IndexedDB). Exporta con frecuencia para no perder tu historia.

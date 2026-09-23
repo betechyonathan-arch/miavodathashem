@@ -156,6 +156,211 @@ const DICT: Record<string, Entry> = {
   Mínimo: { en: 'Minimum', he: 'מינימום' },
   'caracteres.': { en: 'characters.', he: 'תווים.' },
   Espera: { en: 'Wait', he: 'המתן' },
+
+  // Menú (todo lo que hay)
+  'Todo lo que hay': { en: 'Everything there is', he: 'כל מה שיש' },
+  'Cada pantalla y cada opción de la app, en un solo lugar. Toca para ir directo.': {
+    en: 'Every screen and every option in the app, in one place. Tap to jump right there.',
+    he: 'כל מסך וכל אפשרות באפליקציה, במקום אחד. גע כדי לעבור ישירות.',
+  },
+  'El día': { en: 'The day', he: 'היום' },
+  'Ver mi avodá': { en: 'See my avodah', he: 'לראות את העבודה שלי' },
+  'Mi camino': { en: 'My path', he: 'הדרך שלי' },
+  Ajustes: { en: 'Settings', he: 'הגדרות' },
+
+  'Cómo usar la app': { en: 'How to use the app', he: 'איך להשתמש באפליקציה' },
+  'Una guía corta de lo más importante y de cómo registrar.': {
+    en: 'A short guide to the most important things and how to log.',
+    he: 'מדריך קצר לדברים החשובים ביותר ואיך לרשום.',
+  },
+  'Registrar algo': { en: 'Log something', he: 'לרשום משהו' },
+  'Texto, voz o campos por área. El sistema lo clasifica.': {
+    en: 'Text, voice, or fields by area. The system classifies it.',
+    he: 'טקסט, קול או שדות לפי תחום. המערכת מסווגת את זה.',
+  },
+  'Elige victoria/caída una vez y toca cada área — sin formulario, sin texto.': {
+    en: 'Pick victory/fall once and tap each area — no form, no text.',
+    he: 'בחר ניצחון/נפילה פעם אחת ותקש על כל תחום — בלי טופס, בלי טקסט.',
+  },
+  'Check-in de la mañana': { en: 'Morning check-in', he: "צ'ק-אין של הבוקר" },
+  '4 preguntas cortas para entrar al día con un punto claro.': {
+    en: '4 short questions to start the day with a clear point.',
+    he: '4 שאלות קצרות כדי להיכנס ליום עם נקודה ברורה.',
+  },
+  'Cierre del día: solo te pregunta lo que falta.': {
+    en: 'End of day: it only asks what’s missing.',
+    he: 'סגירת היום: שואל רק מה חסר.',
+  },
+  'Ver el día de hoy': { en: 'See today', he: 'לראות את היום' },
+  'Todos los registros de hoy, en orden.': { en: 'All of today’s entries, in order.', he: 'כל הרישומים של היום, בסדר.' },
+  'Ahora, semana, mes y año. Cada número explica su “¿por qué?”.': {
+    en: 'Now, week, month and year. Every number explains its “why”.',
+    he: 'עכשיו, שבוע, חודש ושנה. כל מספר מסביר את ה"למה" שלו.',
+  },
+  Boletas: { en: 'Report cards', he: 'תעודות' },
+  'Semanal, mensual y anual (en Rosh Hashaná): dónde estuviste bien y mal a detalle, un refuerzo y un musar. Exportables a PDF.': {
+    en: 'Weekly, monthly and yearly (on Rosh Hashanah): where you did well and poorly in detail, a boost and a musar. Exportable to PDF.',
+    he: 'שבועי, חודשי ושנתי (בראש השנה): איפה היית טוב ורע בפירוט, חיזוק ומוסר. ניתן לייצא ל-PDF.',
+  },
+  'Historia y búsqueda': { en: 'History and search', he: 'היסטוריה וחיפוש' },
+  'Recorre y busca en todo tu historial, día por día.': {
+    en: 'Browse and search your whole history, day by day.',
+    he: 'עיין וחפש בכל ההיסטוריה שלך, יום אחר יום.',
+  },
+  'Comparar con antes': { en: 'Compare with before', he: 'להשוות עם קודם' },
+  'Hoy vs. 7 / 30 / 90 días y años atrás; línea de vida.': {
+    en: 'Today vs. 7 / 30 / 90 days and years back; life timeline.',
+    he: 'היום מול 7 / 30 / 90 ימים ושנים אחורה; ציר חיים.',
+  },
+  'Calendario hebreo': { en: 'Hebrew calendar', he: 'לוח שנה עברי' },
+  'Zmanim, parashá, cuentas regresivas, omer y yahrzeits.': {
+    en: 'Zmanim, parasha, countdowns, omer and yahrzeits.',
+    he: 'זמנים, פרשה, ספירות לאחור, ספירת העומר ויארצייטים.',
+  },
+  'Las 27 áreas': { en: 'The 27 areas', he: '27-ה תחומים' },
+  'Qué es cada área, su fuente y qué contar en ella.': {
+    en: 'What each area is, its source, and what to count in it.',
+    he: 'מה זה כל תחום, המקור שלו ומה לספור בו.',
+  },
+  'Torá — biblioteca de Sefaria': { en: 'Torah — Sefaria library', he: 'תורה — ספריית ספריא' },
+  'Parashá, Pirkei Avot, Mishná, Guemará y Halajá con miles de pirushim enlazados. Lo de hoy y buscador.': {
+    en: 'Parasha, Pirkei Avot, Mishnah, Gemara and Halacha with thousands of linked commentaries. Today’s reading and a search.',
+    he: 'פרשה, פרקי אבות, משנה, גמרא והלכה עם אלפי פירושים מקושרים. הקריאה של היום וחיפוש.',
+  },
+  Musar: { en: 'Musar', he: 'מוסר' },
+  'Frases al hueso elegidas por el día de hoy, con su fuente. Temas, favoritas y seder breve.': {
+    en: 'Straight-to-the-point lines picked for today, with their source. Themes, favorites and a short seder.',
+    he: 'משפטים ישירים שנבחרו להיום, עם המקור שלהם. נושאים, מועדפים וסדר קצר.',
+  },
+  'Ser Yehudí — el círculo': { en: 'Being a Whole Jew — the circle', he: 'להיות יהודי שלם — המעגל' },
+  'El círculo exacto: catálogo de halajot y jumrot + constancia de por vida − caídas. Kabalot de crecimiento.': {
+    en: 'The exact circle: catalog of halachot and jumrot + lifetime consistency − falls. Growth commitments.',
+    he: 'המעגל המדויק: קטלוג הלכות וחומרות + עקביות לכל החיים פחות נפילות. קבלות לצמיחה.',
+  },
+  'Retar a alguien (privado) o unirte a uno público. Con o sin nombre, según el género de quienes participan.': {
+    en: 'Challenge someone (private) or join a public one. With or without a name, depending on the gender of who’s taking part.',
+    he: 'לאתגר מישהו (פרטי) או להצטרף לאתגר ציבורי. עם או בלי שם, לפי המגדר של המשתתפים.',
+  },
+  'Cadenas de Tehilim': { en: 'Tehilim chains', he: 'שרשראות תהלים' },
+  'Organiza o súmate: entre todos se completan los 150 capítulos por un motivo.': {
+    en: 'Organize or join: together you complete all 150 chapters for a reason.',
+    he: 'ארגן או הצטרף: יחד משלימים את 150 הפרקים למען מטרה.',
+  },
+  'Cómo usar Retos': { en: 'How to use Challenges', he: 'איך להשתמש באתגרים' },
+  'Privacidad, cómo invitar y cómo funciona ver los nombres solo si ambos aceptan.': {
+    en: 'Privacy, how to invite, and how seeing names only if both agree works.',
+    he: 'פרטיות, איך להזמין, ואיך עובד לראות שמות רק אם שניהם מסכימים.',
+  },
+  'Mis kabalot': { en: 'My commitments', he: 'הקבלות שלי' },
+  'Crea tus compromisos con fecha: qué cuidar o hacer, y cuántos días. Con sugerencias para ti. Bli neder.': {
+    en: 'Create your dated commitments: what to keep or do, and for how many days. With suggestions for you. Bli neder.',
+    he: 'צור את ההתחייבויות שלך עם תאריך: מה לשמור או לעשות, ולכמה ימים. עם הצעות בשבילך. בלי נדר.',
+  },
+  'Misión de vida': { en: 'Life mission', he: 'שליחות החיים' },
+  'Tu identidad, tu para qué, tu midá principal.': {
+    en: 'Your identity, your purpose, your main midah.',
+    he: 'הזהות שלך, המטרה שלך, המידה העיקרית שלך.',
+  },
+  'Etapas de vida': { en: 'Life stages', he: 'שלבי חיים' },
+  'Define y compara las etapas por las que vas pasando.': {
+    en: 'Define and compare the stages you’re going through.',
+    he: 'הגדר והשווה את השלבים שאתה עובר.',
+  },
+  Metas: { en: 'Goals', he: 'מטרות' },
+  'Del día a la semana, al mes, al año, a la misión.': {
+    en: 'From the day to the week, the month, the year, the mission.',
+    he: 'מהיום לשבוע, לחודש, לשנה, לשליחות.',
+  },
+  'Mitzvot de la mujer': { en: 'Women’s mitzvot', he: 'מצוות הנשים' },
+  'Jalá, velas, taharat hamishpajá, kisui rosh, tu cocina, tu casa y tu oración: las tuyas, explicadas.': {
+    en: 'Challah, candles, taharat hamishpacha, kisui rosh, your kitchen, your home and your prayer: yours, explained.',
+    he: 'חלה, נרות, טהרת המשפחה, כיסוי ראש, המטבח שלך, הבית שלך והתפילה שלך: שלך, מוסברות.',
+  },
+  'Mitzvot que sigo': { en: 'Mitzvot I keep', he: 'מצוות שאני שומר' },
+  'El catálogo que eliges seguir cada día.': { en: 'The catalog you choose to follow every day.', he: 'הקטלוג שאתה בוחר לעקוב אחריו כל יום.' },
+  'Caídas que vigilo': { en: 'Falls I track', he: 'נפילות שאני עוקב אחריהן' },
+  'Lo que le pides al sistema que cuente y te confronte.': {
+    en: 'What you ask the system to count and confront you on.',
+    he: 'מה שאתה מבקש מהמערכת לספור ולהתעמת איתך עליו.',
+  },
+  Ubicación: { en: 'Location', he: 'מיקום' },
+  'Coordenadas para zmanim y el límite del día.': {
+    en: 'Coordinates for zmanim and the day boundary.',
+    he: 'קואורדינטות לזמנים ולגבול היום.',
+  },
+  'Límite del día judío': { en: 'Jewish day boundary', he: 'גבול היום היהודי' },
+  'Shkiá o tzet, ángulo, y corrección manual de hoy.': {
+    en: 'Sunset or nightfall, angle, and a manual correction for today.',
+    he: 'שקיעה או צאת הכוכבים, זווית, ותיקון ידני להיום.',
+  },
+  Ambiente: { en: 'Appearance', he: 'מראה' },
+  'Tema día / noche y modo Shabat.': { en: 'Day/night theme and Shabbat mode.', he: 'ערכת נושא יום/לילה ומצב שבת.' },
+  'Exigencia del sistema': { en: 'System strictness', he: 'רמת הדרישה של המערכת' },
+  'Suave, firme o exigente. Nunca te condena.': {
+    en: 'Gentle, firm, or demanding. It never condemns you.',
+    he: 'רך, תקיף או תובעני. הוא לעולם לא מרשיע אותך.',
+  },
+  '3 avisos al día a las horas que elijas.': { en: '3 alerts a day at the times you choose.', he: '3 התראות ביום בשעות שתבחר.' },
+  'Instalar la app': { en: 'Install the app', he: 'התקן את האפליקציה' },
+  'Ábrela como una app en tu teléfono y protege mejor tus datos. Android, iPhone y computadora.': {
+    en: 'Open it like an app on your phone and better protect your data. Android, iPhone and computer.',
+    he: 'פתח אותה כאפליקציה בטלפון שלך והגן טוב יותר על הנתונים שלך. אנדרואיד, אייפון ומחשב.',
+  },
+  'Módulo de IA': { en: 'AI module', he: 'מודול בינה מלאכותית' },
+  'Opcional, invisible: clasifica y resume. Sin chatbot.': {
+    en: 'Optional, invisible: classifies and summarizes. No chatbot.',
+    he: 'אופציונלי, בלתי נראה: מסווג ומסכם. בלי צ׳אטבוט.',
+  },
+  'Copia en la nube': { en: 'Cloud backup', he: 'גיבוי בענן' },
+  'Respaldo y puente entre tus dispositivos.': { en: 'Backup and a bridge between your devices.', he: 'גיבוי וגשר בין המכשירים שלך.' },
+  Administración: { en: 'Administration', he: 'ניהול' },
+  'Cuentas, actividad y aportes por aprobar. Nunca muestra lo que cada persona registra.': {
+    en: 'Accounts, activity, and submissions to approve. Never shows what each person logs.',
+    he: 'חשבונות, פעילות ותרומות לאישור. לעולם לא מציג מה כל אחד רושם.',
+  },
+  'Exportar, importar, borrar': { en: 'Export, import, delete', he: 'ייצוא, ייבוא, מחיקה' },
+  'Tus datos son tuyos. Expórtalos seguido.': { en: 'Your data is yours. Export it often.', he: 'הנתונים שלך שייכים לך. ייצא אותם לעיתים קרובות.' },
+
+  // Ajustes (Settings)
+  'Día judío': { en: 'Jewish day', he: 'יום יהודי' },
+  IA: { en: 'AI', he: 'בינה' },
+  Nube: { en: 'Cloud', he: 'ענן' },
+  Cuenta: { en: 'Account', he: 'חשבון' },
+  Datos: { en: 'Data', he: 'נתונים' },
+  Instalar: { en: 'Install', he: 'התקנה' },
+  'Ubicación (cálculos halájicos)': { en: 'Location (halachic calculations)', he: 'מיקום (חישובים הלכתיים)' },
+  'Usar mi ubicación actual': { en: 'Use my current location', he: 'השתמש במיקום הנוכחי שלי' },
+  'Musar — frases al hueso': { en: 'Musar — straight to the point', he: 'מוסר — ישר לעניין' },
+  'Sincronizar ahora': { en: 'Sync now', he: 'סנכרן עכשיו' },
+  'Tu cuenta': { en: 'Your account', he: 'החשבון שלך' },
+  'Abrir el panel de administración ›': { en: 'Open the admin panel ›', he: '‹ פתח את פאנל הניהול' },
+  'Cerrar sesión': { en: 'Log out', he: 'התנתק' },
+  'Tus datos': { en: 'Your data', he: 'הנתונים שלך' },
+  'Exportar todo (JSON)': { en: 'Export everything (JSON)', he: '(ייצוא הכול (JSON' },
+  Importar: { en: 'Import', he: 'ייבוא' },
+  Fusionar: { en: 'Merge', he: 'מיזוג' },
+  Reemplazar: { en: 'Replace', he: 'החלפה' },
+  'Borrar todo': { en: 'Delete everything', he: 'מחק הכול' },
+  'Nombre para mostrar (privado, solo en tu dispositivo)': {
+    en: 'Display name (private, only on your device)',
+    he: 'שם לתצוגה (פרטי, רק במכשיר שלך)',
+  },
+  Etiqueta: { en: 'Label', he: 'תווית' },
+  Latitud: { en: 'Latitude', he: 'קו רוחב' },
+  Longitud: { en: 'Longitude', he: 'קו אורך' },
+  'Zona horaria (tzid)': { en: 'Time zone (tzid)', he: '(אזור זמן (tzid' },
+  'Elevación (m)': { en: 'Elevation (m)', he: '(גובה (מ' },
+  'Estoy en Eretz Israel (afecta Yom Tov de un día vs. dos)': {
+    en: 'I’m in Eretz Israel (affects one-day vs. two-day Yom Tov)',
+    he: '(אני בארץ ישראל (משפיע על יום טוב של יום אחד מול יומיים',
+  },
+  'Tema día / noche': { en: 'Day / night theme', he: 'ערכת נושא יום / לילה' },
+  'Modo Shabat: la app no pide nada en Shabat/Yom Tov': {
+    en: 'Shabbat mode: the app asks nothing on Shabbat/Yom Tov',
+    he: 'מצב שבת: האפליקציה לא מבקשת כלום בשבת/יום טוב',
+  },
+  '¿Qué tan duro contigo?': { en: 'How hard on yourself?', he: '?כמה קשה כלפי עצמך' },
+  '¿Cuánta presencia?': { en: 'How much presence?', he: '?כמה נוכחות' },
 };
 
 const CYCLE: Lang[] = ['es', 'en', 'he'];
