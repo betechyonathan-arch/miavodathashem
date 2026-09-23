@@ -83,6 +83,10 @@ export default function PushWelcome({ onDone }: { onDone: () => void }) {
             <strong>jizuk</strong> de vez en cuando — un empujón corto para que Hashem no se te pierda
             en medio del día.
           </p>
+          <p className="mt-2 text-[13px] leading-relaxed text-ink-soft">
+            Cada vez que te llegue la notificación, te vas a acordar de Hashem — y eso ya es parte de
+            tu avodá en este mundo.
+          </p>
         </Card>
 
         {msg && <p className="text-center text-[12px] text-ink-faint">{msg}</p>}
