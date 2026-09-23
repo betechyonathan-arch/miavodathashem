@@ -350,6 +350,9 @@ export interface Settings {
   guideDoneAt?: string | null;
   /** Cuándo vio (o saltó) la guía de Retos. Sale una sola vez, la primera vez que entra a esa sección. */
   guideRetosDoneAt?: string | null;
+  /** Cuándo vio (o saltó) la invitación a activar notificaciones. Sale una sola vez, a toda cuenta —
+   *  nueva o vieja — la primera vez que entra con esta versión. */
+  pushPromptDoneAt?: string | null;
   /** Idioma de apoyo de la app: español (por defecto), inglés, o hebreo. Ver src/lib/i18n.ts. */
   language?: 'es' | 'en' | 'he';
   aiEnabled: boolean; // módulo IA opcional, off por defecto

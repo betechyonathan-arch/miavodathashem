@@ -108,6 +108,7 @@ export const DEFAULT_SETTINGS: Settings = {
   welcomeDoneAt: null,
   guideDoneAt: null,
   guideRetosDoneAt: null,
+  pushPromptDoneAt: null,
   language: 'es',
   aiEnabled: false,
   aiProvider: 'anthropic',

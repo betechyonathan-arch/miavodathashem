@@ -11,6 +11,7 @@ import MussarLine from './components/MussarLine';
 import Splash from './components/Splash';
 import Kavana from './components/Kavana';
 import Welcome from './components/Welcome';
+import PushWelcome from './components/PushWelcome';
 import Guia from './components/Guia';
 import { guiaVista, marcarGuiaVista } from './lib/guia';
 import RetosGuia from './components/RetosGuia';
@@ -126,6 +127,11 @@ export default function App() {
 
   // Cuenta nueva: una bienvenida que explica la app, deja clara la privacidad y sugiere una primera kabalá.
   if (settings && !settings.welcomeDoneAt) return <Welcome />;
+
+  // Invitación a activar notificaciones: una sola vez por cuenta, nueva o vieja.
+  if (settings && !settings.pushPromptDoneAt) {
+    return <PushWelcome onDone={() => void saveSettings({ pushPromptDoneAt: new Date().toISOString() })} />;
+  }
 
   // Encuestas obligatorias: si hay una activa sin responder, sale antes que todo lo demás y no
   // se puede saltar. Cada vez que se abre la app se vuelve a revisar (sin conexión, se deja pasar).
