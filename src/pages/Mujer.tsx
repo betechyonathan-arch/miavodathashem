@@ -3,6 +3,7 @@ import { useZury } from '../state/zury';
 import { Btn, Card, SectionTitle } from '../components/ui';
 import { WOMEN_MITZVOT, defaultTrackedMitzvot } from '../lib/mitzvot';
 import { getGender } from '../lib/gender';
+import { useT } from '../lib/i18n';
 
 /**
  * Mitzvot de la mujer: las que la Torá y los Sabios le confían de manera especial, y las de su
@@ -10,15 +11,16 @@ import { getGender } from '../lib/gender';
  * un toque se suma a «Mitzvot de hoy». Es una guía general: cada cual consulta a su rav.
  */
 export default function Mujer() {
+  const t = useT();
   const settings = useZury((s) => s.settings);
   const saveSettings = useZury((s) => s.saveSettings);
 
   if (getGender() !== 'mujer') {
     return (
       <Card className="p-5 text-[15px] text-ink-soft">
-        Esta sección es para las mujeres. Si tu cuenta tiene el género mal puesto, cámbialo en{' '}
+        {t('Esta sección es para las mujeres. Si tu cuenta tiene el género mal puesto, cámbialo en')}{' '}
         <Link to="/ajustes" className="text-gold underline underline-offset-2">
-          Ajustes
+          {t('Ajustes')}
         </Link>
         .
       </Card>
@@ -37,11 +39,12 @@ export default function Mujer() {
 
   return (
     <div className="space-y-5">
-      <SectionTitle es="Mitzvot de la mujer" he="מצוות הנשים" />
+      <SectionTitle es={t('Mitzvot de la mujer')} he="מצוות הנשים" />
 
       <p className="-mt-2 text-[14px] leading-relaxed text-ink-soft">
-        La Torá y los Sabios le confían a la mujer mitzvot muy especiales, y su vida diaria (la casa, la cocina, la familia, la
-        espera, la oración desde el corazón) está llena de avodat Hashem. Aquí están; suma a tu lista de hoy las que sientas tuyas.
+        {t(
+          'La Torá y los Sabios le confían a la mujer mitzvot muy especiales, y su vida diaria (la casa, la cocina, la familia, la espera, la oración desde el corazón) está llena de avodat Hashem. Aquí están; suma a tu lista de hoy las que sientas tuyas.',
+        )}
       </p>
 
       <div className="space-y-3">
@@ -57,7 +60,7 @@ export default function Mujer() {
               {m.about && <p className="text-[14px] leading-relaxed text-ink-soft">{m.about}</p>}
               <div className="pt-1">
                 <Btn variant={isOn ? 'ghost' : 'solid'} onClick={() => void toggle(m.id)}>
-                  {isOn ? '✓ En mi lista de hoy' : 'Sumar a mi lista de hoy'}
+                  {isOn ? t('✓ En mi lista de hoy') : t('Sumar a mi lista de hoy')}
                 </Btn>
               </div>
             </Card>
@@ -66,8 +69,9 @@ export default function Mujer() {
       </div>
 
       <p className="text-[11px] leading-relaxed text-ink-faint">
-        Es una guía general basada en el Shulján Aruj. En lo que aplica a tu vida y a las costumbres de tu comunidad (kisui rosh,
-        taharat hamishpajá, tzniut), consulta siempre a tu rav.
+        {t(
+          'Es una guía general basada en el Shulján Aruj. En lo que aplica a tu vida y a las costumbres de tu comunidad (kisui rosh, taharat hamishpajá, tzniut), consulta siempre a tu rav.',
+        )}
       </p>
     </div>
   );

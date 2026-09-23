@@ -361,6 +361,76 @@ const DICT: Record<string, Entry> = {
   },
   '¿Qué tan duro contigo?': { en: 'How hard on yourself?', he: '?כמה קשה כלפי עצמך' },
   '¿Cuánta presencia?': { en: 'How much presence?', he: '?כמה נוכחות' },
+
+  // Misión (Mission)
+  'Mi misión': { en: 'My mission', he: 'השליחות שלי' },
+  Identidad: { en: 'Identity', he: 'זהות' },
+  Etapas: { en: 'Stages', he: 'שלבים' },
+  '¿En quién me estoy intentando convertir?': { en: 'Who am I trying to become?', he: '?למי אני מנסה להפוך' },
+  Visión: { en: 'Vision', he: 'חזון' },
+  Valores: { en: 'Values', he: 'ערכים' },
+  'Objetivos espirituales generales': { en: 'General spiritual goals', he: 'מטרות רוחניות כלליות' },
+  'Midá principal (etapa actual)': { en: 'Main midah (current stage)', he: '(מידה עיקרית (שלב נוכחי' },
+  'Mitzvot que quiero seguir': { en: 'Mitzvot I want to keep', he: 'מצוות שאני רוצה לשמור' },
+  'Añadir otra mitzvá…': { en: 'Add another mitzvah…', he: '…הוסף מצווה נוספת' },
+  'Se registra comportamiento, no una puntuación.': { en: 'It logs behavior, not a score.', he: 'זה רושם התנהגות, לא ניקוד.' },
+  'Caídas que quiero vigilar': { en: 'Falls I want to watch', he: 'נפילות שאני רוצה לעקוב אחריהן' },
+  'Añadir otra caída a vigilar…': { en: 'Add another fall to watch…', he: '…הוסף נפילה נוספת לעקוב אחריה' },
+  'El sistema las cuenta y te pide el regreso. Nunca te juzga ni da psak (§60).': {
+    en: 'The system counts them and asks you to return. It never judges you or gives a psak (§60).',
+    he: 'המערכת סופרת אותן ומבקשת ממך לחזור. היא לעולם לא שופטת אותך ולא פוסקת הלכה (§60).',
+  },
+  'Guardado ✓': { en: 'Saved ✓', he: 'נשמר ✓' },
+  Guardar: { en: 'Save', he: 'שמור' },
+  'Las 27 áreas de la avodá': { en: 'The 27 areas of avodah', he: 'עשרים ושבעה תחומי העבודה' },
+  'Qué es cada área, su fuente (pasuk / Chazal / Rambam) y qué cuenta como registro. →': {
+    en: 'What each area is, its source (pasuk / Chazal / Rambam) and what counts as an entry. →',
+    he: '(מה זה כל תחום, המקור שלו (פסוק / חז"ל / רמב"ם) ומה נחשב לרישום. ←',
+  },
+  'La jerarquía completa está en las pestañas': { en: 'The full hierarchy is in the', he: 'ההיררכיה המלאה נמצאת בלשוניות' },
+
+  // Historia (History)
+  'Tu historia': { en: 'Your history', he: 'ההיסטוריה שלך' },
+  Días: { en: 'Days', he: 'ימים' },
+  Comparar: { en: 'Compare', he: 'השוואה' },
+  'Buscar en todo: Bitajón, Kaas, Yerushalayim, una frase…': {
+    en: 'Search everything: Bitajon, Kaas, Yerushalayim, a phrase…',
+    he: '…חפש בהכול: ביטחון, כעס, ירושלים, משפט',
+  },
+  'Todas las áreas': { en: 'All areas', he: 'כל התחומים' },
+  Todo: { en: 'All', he: 'הכול' },
+  '🟢 Victorias': { en: '🟢 Victories', he: '🟢 ניצחונות' },
+  '🔴 Caídas': { en: '🔴 Falls', he: '🔴 נפילות' },
+  '🔄 Recuperación': { en: '🔄 Recovery', he: '🔄 התאוששות' },
+  'reg.': { en: 'entries', he: 'רש׳' },
+  'Todavía no hay días registrados. Empieza hoy.': { en: 'No days logged yet. Start today.', he: 'עדיין אין ימים רשומים. התחל היום.' },
+  'Hoy vs. el pasado': { en: 'Today vs. the past', he: 'היום מול העבר' },
+  'Aún no hay historial para comparar. Con el tiempo verás hoy junto a hace 1 mes, 1 año, 5 años…': {
+    en: 'There’s no history to compare yet. Over time you’ll see today next to 1 month, 1 year, 5 years ago…',
+    he: 'עדיין אין היסטוריה להשוואה. עם הזמן תראה את היום לצד לפני חודש, שנה, 5 שנים…',
+  },
+  registros: { en: 'entries', he: 'רישומים' },
+  'min Torá': { en: 'min Torah', he: 'דק׳ תורה' },
+  ánimo: { en: 'mood', he: 'מצב רוח' },
+  'ver ese día →': { en: 'see that day →', he: '← ראה את היום ההוא' },
+  'Línea de vida': { en: 'Life timeline', he: 'קו החיים' },
+  'Registros por mes en todo tu historial.': { en: 'Entries per month across your whole history.', he: 'רישומים לחודש בכל ההיסטוריה שלך.' },
+
+  // Mujer (Women's mitzvot)
+  'Esta sección es para las mujeres. Si tu cuenta tiene el género mal puesto, cámbialo en': {
+    en: 'This section is for women. If your account has the wrong gender set, change it in',
+    he: 'הקטע הזה מיועד לנשים. אם המגדר בחשבון שלך שגוי, שנה אותו ב',
+  },
+  'La Torá y los Sabios le confían a la mujer mitzvot muy especiales, y su vida diaria (la casa, la cocina, la familia, la espera, la oración desde el corazón) está llena de avodat Hashem. Aquí están; suma a tu lista de hoy las que sientas tuyas.': {
+    en: 'The Torah and the Sages entrust women with very special mitzvot, and her daily life (the home, the kitchen, the family, waiting, prayer from the heart) is full of avodat Hashem. Here they are; add to your list for today the ones you feel are yours.',
+    he: 'התורה והחכמים מפקידים בידי האישה מצוות מיוחדות מאוד, וחיי היומיום שלה (הבית, המטבח, המשפחה, ההמתנה, התפילה מהלב) מלאים בעבודת ה׳. הנה הן; הוסיפי לרשימה של היום את אלה שמרגישות לך שייכות.',
+  },
+  '✓ En mi lista de hoy': { en: '✓ On my list for today', he: '✓ ברשימה שלי להיום' },
+  'Sumar a mi lista de hoy': { en: 'Add to my list for today', he: 'הוסף לרשימה שלי להיום' },
+  'Es una guía general basada en el Shulján Aruj. En lo que aplica a tu vida y a las costumbres de tu comunidad (kisui rosh, taharat hamishpajá, tzniut), consulta siempre a tu rav.': {
+    en: 'This is a general guide based on the Shulchan Aruch. For what applies to your life and your community’s customs (kisui rosh, taharat hamishpacha, tzniut), always consult your rav.',
+    he: 'זהו מדריך כללי המבוסס על השולחן ערוך. במה שנוגע לחייך ולמנהגי הקהילה שלך (כיסוי ראש, טהרת המשפחה, צניעות), תמיד התייעצי עם הרב שלך.',
+  },
 };
 
 const CYCLE: Lang[] = ['es', 'en', 'he'];

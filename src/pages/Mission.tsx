@@ -6,6 +6,7 @@ import StagesPanel from '../components/StagesPanel';
 import GoalsPanel from '../components/GoalsPanel';
 import { MITZVOT_CATALOG } from '../lib/mitzvot';
 import { WATCHED_FALLS_CATALOG } from '../lib/watchedFalls';
+import { useLang, useT } from '../lib/i18n';
 
 type Tab = 'identidad' | 'etapas' | 'metas';
 const TABS: { id: Tab; es: string; he: string }[] = [
@@ -15,6 +16,8 @@ const TABS: { id: Tab; es: string; he: string }[] = [
 ];
 
 export default function Mission() {
+  const t = useT();
+  const lang = useLang();
   const { settings, saveSettings } = useZury();
   const navigate = useNavigate();
   const [params] = useSearchParams();
@@ -69,19 +72,19 @@ export default function Mission() {
 
   return (
     <div className="space-y-4">
-      <SectionTitle es="Mi misión" he="השליחות שלי" />
+      <SectionTitle es={t('Mi misión')} he="השליחות שלי" />
 
       <div className="flex gap-1">
-        {TABS.map((t) => (
+        {TABS.map((tb) => (
           <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
+            key={tb.id}
+            onClick={() => setTab(tb.id)}
             className={`flex-1 rounded-lg border py-1.5 text-[12px] ${
-              tab === t.id ? 'border-gold bg-gold text-[#1a140a]' : 'border-line text-ink-soft'
+              tab === tb.id ? 'border-gold bg-gold text-[#1a140a]' : 'border-line text-ink-soft'
             }`}
           >
-            {t.es}
-            <span className="hebrew block text-[10px] opacity-70">{t.he}</span>
+            {t(tb.es)}
+            <span className="hebrew block text-[10px] opacity-70">{tb.he}</span>
           </button>
         ))}
       </div>
@@ -92,7 +95,7 @@ export default function Mission() {
       {tab === 'identidad' && (
         <>
           <Card className="p-4 text-center">
-            <div className="text-[12px] uppercase tracking-[0.16em] text-ink-faint">Misión de vida</div>
+            <div className="text-[12px] uppercase tracking-[0.16em] text-ink-faint">{t('Misión de vida')}</div>
             <div className="hebrew my-1 text-3xl text-gold">{m.lifeMission || 'לעבוד את ה׳'}</div>
             <input
               className={inputCls + ' text-center'}
@@ -102,7 +105,7 @@ export default function Mission() {
           </Card>
 
           <Card className="space-y-3 p-4">
-            <Field label="¿En quién me estoy intentando convertir?" hint="No es un número. Es una visión que puede evolucionar.">
+            <Field label={t('¿En quién me estoy intentando convertir?')} hint="No es un número. Es una visión que puede evolucionar.">
               <textarea
                 className={inputCls + ' resize-none'}
                 rows={3}
@@ -110,17 +113,17 @@ export default function Mission() {
                 onChange={(e) => setM({ ...m, becomingWho: e.target.value })}
               />
             </Field>
-            <Field label="Visión">
+            <Field label={t('Visión')}>
               <textarea className={inputCls + ' resize-none'} rows={2} value={m.vision} onChange={(e) => setM({ ...m, vision: e.target.value })} />
             </Field>
-            <Field label="Valores" hint="Separados por coma">
+            <Field label={t('Valores')} hint="Separados por coma">
               <input
                 className={inputCls}
                 value={m.values.join(', ')}
                 onChange={(e) => setM({ ...m, values: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) })}
               />
             </Field>
-            <Field label="Objetivos espirituales generales">
+            <Field label={t('Objetivos espirituales generales')}>
               <textarea
                 className={inputCls + ' resize-none'}
                 rows={2}
@@ -131,11 +134,11 @@ export default function Mission() {
           </Card>
 
           <Card as="section" id="mitzvot" className="scroll-mt-24 space-y-3 p-4">
-            <Field label="Midá principal (etapa actual)" hint="El motor la usa en el check-in. Nunca dirá que es tu “Tikún” — solo que aparece con frecuencia.">
+            <Field label={t('Midá principal (etapa actual)')} hint="El motor la usa en el check-in. Nunca dirá que es tu “Tikún” — solo que aparece con frecuencia.">
               <input className={inputCls} value={primaryMiddah} onChange={(e) => setPrimaryMiddah(e.target.value)} placeholder="Ej. Savlanut" />
             </Field>
             <div>
-              <div className="mb-1 text-[13px] font-medium text-ink-soft">Mitzvot que quiero seguir</div>
+              <div className="mb-1 text-[13px] font-medium text-ink-soft">{t('Mitzvot que quiero seguir')}</div>
               <div className="flex flex-wrap gap-1.5">
                 {MITZVOT_CATALOG.map((m) => {
                   const on = mitzvot.includes(m.id);
@@ -170,7 +173,7 @@ export default function Mission() {
                   className={inputCls}
                   value={customMitzvah}
                   onChange={(e) => setCustomMitzvah(e.target.value)}
-                  placeholder="Añadir otra mitzvá…"
+                  placeholder={t('Añadir otra mitzvá…')}
                 />
                 <Btn
                   variant="ghost"
@@ -183,11 +186,11 @@ export default function Mission() {
                   +
                 </Btn>
               </div>
-              <p className="mt-1 text-[11px] text-ink-faint">Se registra comportamiento, no una puntuación.</p>
+              <p className="mt-1 text-[11px] text-ink-faint">{t('Se registra comportamiento, no una puntuación.')}</p>
             </div>
 
             <div id="caidas" className="scroll-mt-24">
-              <div className="mb-1 text-[13px] font-medium text-ink-soft">Caídas que quiero vigilar</div>
+              <div className="mb-1 text-[13px] font-medium text-ink-soft">{t('Caídas que quiero vigilar')}</div>
               <div className="flex flex-wrap gap-1.5">
                 {WATCHED_FALLS_CATALOG.map((w) => {
                   const on = watched.includes(w.id);
@@ -222,7 +225,7 @@ export default function Mission() {
                   className={inputCls}
                   value={customWatched}
                   onChange={(e) => setCustomWatched(e.target.value)}
-                  placeholder="Añadir otra caída a vigilar…"
+                  placeholder={t('Añadir otra caída a vigilar…')}
                 />
                 <Btn
                   variant="ghost"
@@ -236,13 +239,13 @@ export default function Mission() {
                 </Btn>
               </div>
               <p className="mt-1 text-[11px] text-ink-faint">
-                El sistema las cuenta y te pide el regreso. Nunca te juzga ni da psak (§60).
+                {t('El sistema las cuenta y te pide el regreso. Nunca te juzga ni da psak (§60).')}
               </p>
             </div>
           </Card>
 
           <Btn className="w-full" onClick={save}>
-            {saved ? 'Guardado ✓' : 'Guardar'}
+            {saved ? t('Guardado ✓') : t('Guardar')}
           </Btn>
 
           <button
@@ -250,16 +253,17 @@ export default function Mission() {
             className="w-full rounded-2xl border border-line bg-raised p-4 text-left shadow-[var(--shadow)]"
           >
             <div className="flex items-baseline justify-between">
-              <span className="text-[13px] text-ink">Las 27 áreas de la avodá</span>
+              <span className="text-[13px] text-ink">{t('Las 27 áreas de la avodá')}</span>
               <span className="hebrew text-lg text-gold">תחומי העבודה</span>
             </div>
             <p className="mt-1 text-[12px] text-ink-faint">
-              Qué es cada área, su fuente (pasuk / Chazal / Rambam) y qué cuenta como registro. →
+              {t('Qué es cada área, su fuente (pasuk / Chazal / Rambam) y qué cuenta como registro. →')}
             </p>
           </button>
 
           <p className="text-center text-[11px] text-ink-faint">
-            La jerarquía completa está en las pestañas <span className="text-ink-soft">Etapas</span> y <span className="text-ink-soft">Metas</span>.
+            {t('La jerarquía completa está en las pestañas')} <span className="text-ink-soft">{t('Etapas')}</span>{' '}
+            {lang === 'es' ? 'y' : lang === 'en' ? 'and' : 'ו'} <span className="text-ink-soft">{t('Metas')}</span>.
           </p>
         </>
       )}

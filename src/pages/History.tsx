@@ -10,8 +10,10 @@ import { useZury } from '../state/zury';
 import { Card, SectionTitle, inputCls } from '../components/ui';
 import EntryList from '../components/EntryList';
 import type { AreaId, Entry } from '../lib/db/schema';
+import { useT } from '../lib/i18n';
 
 export default function History() {
+  const t = useT();
   const [params] = useSearchParams();
   const [tab, setTab] = useState<'dias' | 'comparar'>(params.get('t') === 'comparar' ? 'comparar' : 'dias');
   const [q, setQ] = useState('');
@@ -41,22 +43,22 @@ export default function History() {
 
   return (
     <div className="space-y-4">
-      <SectionTitle es="Tu historia" he="המסע שלי" />
+      <SectionTitle es={t('Tu historia')} he="המסע שלי" />
 
       <div className="flex gap-1">
         {[
           { id: 'dias', label: 'Días', he: 'ימים' },
           { id: 'comparar', label: 'Comparar', he: 'השוואה' },
-        ].map((t) => (
+        ].map((tb) => (
           <button
-            key={t.id}
-            onClick={() => setTab(t.id as 'dias' | 'comparar')}
+            key={tb.id}
+            onClick={() => setTab(tb.id as 'dias' | 'comparar')}
             className={`flex-1 rounded-lg border py-1.5 text-[12px] ${
-              tab === t.id ? 'border-gold bg-gold text-[#1a140a]' : 'border-line text-ink-soft'
+              tab === tb.id ? 'border-gold bg-gold text-[#1a140a]' : 'border-line text-ink-soft'
             }`}
           >
-            {t.label}
-            <span className="hebrew block text-[10px] opacity-70">{t.he}</span>
+            {t(tb.label)}
+            <span className="hebrew block text-[10px] opacity-70">{tb.he}</span>
           </button>
         ))}
       </div>
@@ -68,13 +70,13 @@ export default function History() {
           <Card className="space-y-2 p-3">
             <input
               className={inputCls}
-              placeholder="Buscar en todo: Bitajón, Kaas, Yerushalayim, una frase…"
+              placeholder={t('Buscar en todo: Bitajón, Kaas, Yerushalayim, una frase…')}
               value={q}
               onChange={(e) => setQ(e.target.value)}
             />
             <div className="flex flex-wrap gap-1.5">
               <select className={inputCls + ' w-auto flex-1'} value={area} onChange={(e) => setArea(e.target.value as AreaId | '')}>
-                <option value="">Todas las áreas</option>
+                <option value="">{t('Todas las áreas')}</option>
                 {CATEGORIES.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.emoji} {c.es}
@@ -86,10 +88,10 @@ export default function History() {
                 value={valence}
                 onChange={(e) => setValence(e.target.value as '' | 'victory' | 'fall' | 'recovery')}
               >
-                <option value="">Todo</option>
-                <option value="victory">🟢 Victorias</option>
-                <option value="fall">🔴 Caídas</option>
-                <option value="recovery">🔄 Recuperación</option>
+                <option value="">{t('Todo')}</option>
+                <option value="victory">{t('🟢 Victorias')}</option>
+                <option value="fall">{t('🔴 Caídas')}</option>
+                <option value="recovery">{t('🔄 Recuperación')}</option>
               </select>
             </div>
           </Card>
@@ -116,7 +118,7 @@ export default function History() {
                       </span>
                     </span>
                     <span className="text-right text-[12px] text-ink-faint">
-                      {countByDay[d.id] ?? 0} reg.
+                      {countByDay[d.id] ?? 0} {t('reg.')}
                       {d.cheshbon ? <span className="block text-gold">✓ חשבון</span> : null}
                     </span>
                   </Link>
@@ -124,7 +126,7 @@ export default function History() {
               ))}
               {days.length === 0 && (
                 <Card className="p-6 text-center text-[13px] text-ink-faint">
-                  Todavía no hay días registrados. Empieza hoy.
+                  {t('Todavía no hay días registrados. Empieza hoy.')}
                 </Card>
               )}
             </ul>
@@ -136,6 +138,7 @@ export default function History() {
 }
 
 function CompareView() {
+  const t = useT();
   const today = useZury((s) => s.day);
   const snaps = useLiveQuery(() => (today ? daySnapshots(today.dayId) : Promise.resolve([])), [today?.dayId], [] as DaySnapshot[]);
   const months = useLiveQuery(() => lifeline(), [], []);
@@ -146,10 +149,10 @@ function CompareView() {
 
   return (
     <div className="space-y-4">
-      <SectionTitle es="Hoy vs. el pasado" he="היום מול העבר" />
+      <SectionTitle es={t('Hoy vs. el pasado')} he="היום מול העבר" />
       {withData.length <= 1 ? (
         <Card className="p-5 text-center text-[13px] text-ink-faint">
-          Aún no hay historial para comparar. Con el tiempo verás hoy junto a hace 1 mes, 1 año, 5 años…
+          {t('Aún no hay historial para comparar. Con el tiempo verás hoy junto a hace 1 mes, 1 año, 5 años…')}
         </Card>
       ) : (
         <div className="space-y-2">
@@ -169,11 +172,11 @@ function CompareView() {
                 )}
               </div>
               <div className="mt-1 flex flex-wrap gap-2 text-[12px] text-ink-soft">
-                <span>{s.entries} registros</span>
-                {s.torahMin > 0 && <span>· {s.torahMin} min Torá</span>}
+                <span>{s.entries} {t('registros')}</span>
+                {s.torahMin > 0 && <span>· {s.torahMin} {t('min Torá')}</span>}
                 {s.victories > 0 && <span>· {s.victories} 🟢</span>}
                 {s.falls > 0 && <span>· {s.falls} 🔴</span>}
-                {s.moodEnd != null && <span>· ánimo {s.moodEnd}/10</span>}
+                {s.moodEnd != null && <span>· {t('ánimo')} {s.moodEnd}/10</span>}
                 {s.cheshbon && <span className="text-gold">· ✓ חשבון</span>}
               </div>
               {s.summary && s.offsetDays > 0 && (
@@ -181,7 +184,7 @@ function CompareView() {
               )}
               {s.offsetDays > 0 && (
                 <Link to={`/dia/${s.dayId}`} className="mt-1 inline-block text-[11px] text-gold">
-                  ver ese día →
+                  {t('ver ese día →')}
                 </Link>
               )}
             </Card>
@@ -191,7 +194,7 @@ function CompareView() {
 
       {months.length > 1 && (
         <div>
-          <SectionTitle es="Línea de vida" he="קו החיים" />
+          <SectionTitle es={t('Línea de vida')} he="קו החיים" />
           <Card className="p-4">
             <div className="flex items-end gap-[3px]" style={{ height: 80 }}>
               {months.map((m) => (
@@ -207,7 +210,7 @@ function CompareView() {
               <span>{months[0].ym}</span>
               <span>{months[months.length - 1].ym}</span>
             </div>
-            <p className="mt-1 text-[11px] text-ink-faint">Registros por mes en todo tu historial.</p>
+            <p className="mt-1 text-[11px] text-ink-faint">{t('Registros por mes en todo tu historial.')}</p>
           </Card>
         </div>
       )}
