@@ -36,7 +36,7 @@ import {
   type ReporteReto,
   type RetoAdmin,
 } from '../lib/retos';
-import { sendPushToAll } from '../lib/pushAdmin';
+import { listPushSubscribers, sendPushToAll, type PushSubscriber } from '../lib/pushAdmin';
 import {
   EncuestaError,
   deleteEncuesta,
@@ -268,7 +268,7 @@ const chip = (on: boolean) =>
 /* ───────────────────────────── Página ───────────────────────────── */
 
 type Tab = 'resumen' | 'personas' | 'aportes' | 'avisos' | 'kabalot' | 'encuestas' | 'retos' | 'actividad';
-type Filter = 'todas' | 'en_linea' | 'nuevas' | 'admins' | 'desactivadas';
+type Filter = 'todas' | 'en_linea' | 'nuevas' | 'admins' | 'desactivadas' | 'con_notis';
 type Sort = 'recientes' | 'ultima' | 'nombre' | 'entradas';
 type EventFilter = 'todo' | 'actividad' | 'registros' | 'entradas' | 'aportes' | 'retos' | 'admin';
 
@@ -294,6 +294,7 @@ export default function Admin() {
   const [retos, setRetos] = useState<RetoAdmin[] | null>(null);
   const [cadenas, setCadenas] = useState<CadenaAdmin[] | null>(null);
   const [reportes, setReportes] = useState<ReporteReto[] | null>(null);
+  const [pushSubs, setPushSubs] = useState<PushSubscriber[] | null>(null);
   const [bloqueoEmail, setBloqueoEmail] = useState('');
   const [encDraft, setEncDraft] = useState<EncuestaInput>(emptyEnc);
   const [verRespuestas, setVerRespuestas] = useState<string | null>(null);
@@ -323,10 +324,15 @@ export default function Admin() {
         setEncuestas([{ id: 'e-1', title: 'Del 1 al 10, ¿qué tanto...?', description: '', kind: 'escala', scale_min: 1, scale_max: 10, active: true, respuestas: 12, promedio: 7.4, respondi: false, mi_valor_num: null, mi_valor_texto: null }]);
         setKabalotCom([{ id: 'kc-1', title: 'No hablar lashón hará de la persona que más me cae mal', he: 'שְׁמִירַת הַלָּשׁוֹן', blurb: 'Hasta después de Sucot, sin lashón hará de esa persona.', kavana: '', subject_label: '', pasuk_he: '', pasuk_es: '', pasuk_ref: '', kind: 'cuidar', area: 'speech', ends_on: '2026-10-04', active: true, aceptaron: 42, acepte: false }]);
         setAvisos([{ id: 'av-1', title: 'Shabat Shalom', body: 'Que tengan un Shabat de mucha luz. Recuerden encender las velas a tiempo.', active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }]);
+        setPushSubs([
+          { user_id: 'demo-1', subscribed_at: new Date(Date.now() - 20 * 86_400_000).toISOString() },
+          { user_id: 'demo-4', subscribed_at: new Date(Date.now() - 1 * 86_400_000).toISOString() },
+        ]);
         setExtended(true);
       } else {
-        const [u, e, a, av, kc, enc, rt, rp, cd] = await Promise.all([
+        const [u, e, a, av, kc, enc, rt, rp, cd, ps] = await Promise.all([
           listUsers(), listEvents(), listAll(), listAllAvisos(), fetchComunidad(), fetchEncuestas(), listRetosAdmin(), listReportesRetos(), listCadenasAdmin(),
+          listPushSubscribers().catch(() => [] as PushSubscriber[]),
         ]);
         setUsers(u.users);
         setExtended(u.extended);
@@ -338,6 +344,7 @@ export default function Admin() {
         setRetos(rt);
         setReportes(rp);
         setCadenas(cd);
+        setPushSubs(ps);
       }
       setNow(Date.now());
     } catch (e) {
@@ -396,6 +403,8 @@ export default function Admin() {
     };
   }, [users, now]);
 
+  const pushMap = useMemo(() => new Map((pushSubs ?? []).map((p) => [p.user_id, p.subscribed_at])), [pushSubs]);
+
   const shown = useMemo(() => {
     let list = users ?? [];
     const term = q.trim().toLowerCase();
@@ -405,6 +414,7 @@ export default function Admin() {
     if (filter === 'nuevas') list = list.filter((u) => new Date(u.created_at).getTime() >= week);
     if (filter === 'admins') list = list.filter((u) => u.role === 'admin');
     if (filter === 'desactivadas') list = list.filter((u) => u.disabled);
+    if (filter === 'con_notis') list = list.filter((u) => pushMap.has(u.id));
     const t = (s: string | null) => (s ? new Date(s).getTime() : 0);
     const sorted = [...list];
     if (sort === 'recientes') sorted.sort((a, b) => t(b.created_at) - t(a.created_at));
@@ -412,7 +422,7 @@ export default function Admin() {
     if (sort === 'nombre') sorted.sort((a, b) => (a.full_name || a.email).localeCompare(b.full_name || b.email, 'es'));
     if (sort === 'entradas') sorted.sort((a, b) => b.login_count - a.login_count);
     return sorted;
-  }, [users, q, filter, sort, now]);
+  }, [users, q, filter, sort, now, pushMap]);
 
   const eventsShown = useMemo(() => {
     const list = events ?? [];
@@ -602,6 +612,7 @@ export default function Admin() {
             <Stat label="Registradas en 7 días" value={stats.registered7} />
             <Stat label="Llegaron por invitación" value={stats.viaInvite} hint="con el enlace de alguien" />
             <Stat label="Admins" value={stats.admins} hint={stats.disabled ? `${plural(stats.disabled, 'desactivada', 'desactivadas')}` : undefined} />
+            <Stat label="Con notificaciones" value={pushMap.size} hint={users ? `de ${users.length}` : undefined} />
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
@@ -636,6 +647,35 @@ export default function Admin() {
                     <span className="shrink-0 text-[13px] text-ink-faint">{ago(u.last_seen_at, now)}</span>
                   </div>
                 ))}
+              </Card>
+            )}
+          </section>
+
+          <section className="space-y-3">
+            <div className="flex items-baseline justify-between">
+              <h2 className="text-xl text-ink">🔔 Notificaciones activadas</h2>
+              <button onClick={() => setTab('personas')} className="text-[14px] text-gold underline underline-offset-2">
+                Ver en Personas
+              </button>
+            </div>
+            {pushMap.size === 0 ? (
+              <Card className="p-5 text-[15px] text-ink-faint">
+                {pushSubs === null ? 'Cargando…' : 'Todavía nadie tiene las notificaciones activadas.'}
+              </Card>
+            ) : (
+              <Card className="divide-y divide-line">
+                {users
+                  .filter((u) => pushMap.has(u.id))
+                  .sort((a, b) => new Date(pushMap.get(b.id) ?? 0).getTime() - new Date(pushMap.get(a.id) ?? 0).getTime())
+                  .map((u) => (
+                    <div key={u.id} className="flex items-center justify-between gap-3 px-5 py-3.5">
+                      <div className="min-w-0">
+                        <div className="truncate text-[16px] text-ink">{u.full_name || '(sin nombre)'}</div>
+                        <div className="truncate text-[13px] text-ink-faint">{u.email}</div>
+                      </div>
+                      <span className="shrink-0 text-[13px] text-ink-faint">desde {ago(pushMap.get(u.id) ?? null, now)}</span>
+                    </div>
+                  ))}
               </Card>
             )}
           </section>
@@ -712,6 +752,7 @@ export default function Admin() {
                   ['en_linea', `En línea (${stats.online.length})`],
                   ['nuevas', 'Nuevas (7 días)'],
                   ['admins', 'Admins'],
+                  ['con_notis', `🔔 Con notificaciones (${pushMap.size})`],
                   ['desactivadas', 'Desactivadas'],
                 ] as [Filter, string][]
               ).map(([id, label]) => (
@@ -754,6 +795,7 @@ export default function Admin() {
                       {online && <Badge tone="green">En línea</Badge>}
                       {u.role === 'admin' && <Badge tone="gold">Admin</Badge>}
                       {u.disabled && <Badge tone="red">Desactivada</Badge>}
+                      {pushMap.has(u.id) && <Badge tone="green">🔔 Notis</Badge>}
                       {self && <Badge tone="muted">Tú</Badge>}
                     </div>
                     <div className="mt-1 break-all text-[15px] text-ink-soft">{u.email}</div>
@@ -772,6 +814,16 @@ export default function Admin() {
                     <Fact label="Es">{u.gender === 'mujer' ? 'Mujer' : u.gender === 'hombre' ? 'Hombre' : '—'}</Fact>
                     <Fact label="Invitó a">{plural(invitedCount.get(u.id) ?? 0, 'persona', 'personas')}</Fact>
                     <Fact label="Llegó por">{inviter ? `Invitación de ${inviter.full_name || inviter.email}` : 'Su cuenta, sin invitación'}</Fact>
+                    <Fact label="Notificaciones">
+                      {pushMap.has(u.id) ? (
+                        <>
+                          🔔 Activadas
+                          <div className="text-[13px] text-ink-faint">desde {ago(pushMap.get(u.id) ?? null, now)}</div>
+                        </>
+                      ) : (
+                        '— Apagadas'
+                      )}
+                    </Fact>
                   </div>
 
                   {!self && (

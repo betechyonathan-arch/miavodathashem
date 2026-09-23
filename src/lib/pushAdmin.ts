@@ -13,6 +13,20 @@ export interface SendPushResult {
   limpiadas: number;
 }
 
+export interface PushSubscriber {
+  user_id: string;
+  /** Desde cuándo tiene notificaciones activadas (la más antigua de sus dispositivos). */
+  subscribed_at: string;
+}
+
+/** Solo admin: quién activó las notificaciones y desde cuándo — nunca la dirección técnica de envío. */
+export async function listPushSubscribers(): Promise<PushSubscriber[]> {
+  if (!supabase) throw new PushAdminError('El servidor no está configurado.');
+  const { data, error } = await supabase.rpc('admin_list_push_subscribers');
+  if (error) throw new PushAdminError(error.message || 'No se pudo cargar quién tiene las notificaciones activadas.');
+  return (data ?? []) as PushSubscriber[];
+}
+
 export async function sendPushToAll(title: string, body: string): Promise<SendPushResult> {
   if (!supabase) throw new PushAdminError('El servidor no está configurado.');
   const { data, error } = await supabase.functions.invoke('send-push', { body: { title, body } });
