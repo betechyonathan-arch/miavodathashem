@@ -2,58 +2,53 @@ import { useEffect, useMemo, useState } from 'react';
 import { useZury } from '../state/zury';
 import { baseMusarContext } from '../lib/musar/context';
 import { pickMusar } from '../lib/musar';
-import { isSubscribed, pushSupported, subscribePush } from '../lib/push';
-import { backendConfigured } from '../lib/supabase';
+import { isSubscribed, subscribePush } from '../lib/push';
 import { Btn, Card } from './ui';
 
+type Stage = 'checking' | 'ask' | 'denied';
+
 /**
- * Invitación a activar notificaciones, una sola vez por cuenta — nueva o vieja — la primera vez
- * que entra con esta versión (settings.pushPromptDoneAt). Se salta sola (sin mostrar nada) si el
- * navegador no soporta push, si el servidor no está configurado, si ya está activada, o si el
- * permiso ya quedó denegado — en ninguno de esos casos hay nada que preguntar.
+ * Puerta obligatoria: no se entra a la app sin notificaciones activadas. Se revisa en CADA
+ * entrada (no es un «ya la vi» de una sola vez): si alguien las desactiva después, a su próxima
+ * entrada vuelve a salir esto. El único escape es técnico, nunca de conveniencia — quien ya le dio
+ * «Bloquear» al navegador no puede recibir el diálogo de permiso otra vez por código de ninguna
+ * página web; aquí se le explica cómo arreglarlo a mano, en vez de dejarlo varado sin saber por qué.
+ * (Este componente asume que el navegador SÍ soporta push y que el servidor SÍ está configurado —
+ * esa comprobación, que si falla no puede exigirse nada, vive en App.tsx antes de montar esto.)
  */
 export default function PushWelcome({ onDone }: { onDone: () => void }) {
   const settings = useZury((s) => s.settings);
   const day = useZury((s) => s.day);
-  const [checking, setChecking] = useState(true);
+  const [stage, setStage] = useState<Stage>('checking');
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
 
   const line = useMemo(() => pickMusar(baseMusarContext(settings, day), 'push-welcome'), [settings, day]);
 
-  useEffect(() => {
-    let alive = true;
-    if (!pushSupported() || !backendConfigured || Notification.permission === 'denied') {
-      onDone();
-      return;
-    }
-    isSubscribed().then((yes) => {
-      if (!alive) return;
+  function check() {
+    void isSubscribed().then((yes) => {
       if (yes) onDone();
-      else setChecking(false);
+      else setStage(Notification.permission === 'denied' ? 'denied' : 'ask');
     });
-    return () => {
-      alive = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }
+
+  useEffect(check, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function activar() {
     setBusy(true);
     setMsg('');
     const r = await subscribePush();
-    setMsg(
-      r === 'ok'
-        ? '✓ Notificaciones activadas.'
-        : r === 'denegado'
-          ? 'No diste el permiso. Puedes activarlas después desde Ajustes.'
-          : 'No se pudo activar. Puedes intentarlo después desde Ajustes.',
-    );
+    if (r === 'ok') {
+      setMsg('✓ Notificaciones activadas.');
+      setTimeout(onDone, 900);
+      return;
+    }
     setBusy(false);
-    setTimeout(onDone, r === 'ok' ? 1000 : 1700);
+    if (r === 'denegado') setStage('denied');
+    else setMsg('No se pudo activar. Revisa tu conexión e intenta de nuevo.');
   }
 
-  if (checking) return null;
+  if (stage === 'checking') return null;
 
   return (
     <div className="min-h-full bg-bg px-5 py-10">
@@ -62,7 +57,9 @@ export default function PushWelcome({ onDone }: { onDone: () => void }) {
           <span className="text-3xl" aria-hidden>
             🔔
           </span>
-          <h1 className="mt-2 text-2xl text-ink">No te pierdas el día</h1>
+          <h1 className="mt-2 text-2xl text-ink">
+            {stage === 'denied' ? 'Activa las notificaciones para entrar' : 'No te pierdas el día'}
+          </h1>
         </div>
 
         <Card className="space-y-2 border-gold/50 p-4 text-center">
@@ -77,32 +74,46 @@ export default function PushWelcome({ onDone }: { onDone: () => void }) {
           )}
         </Card>
 
-        <Card className="p-4">
-          <p className="text-[13px] leading-relaxed text-ink-soft">
-            Activa las notificaciones y te acompañamos con una <strong>halajá al día</strong> y un{' '}
-            <strong>jizuk</strong> de vez en cuando — un empujón corto para que Hashem no se te pierda
-            en medio del día.
-          </p>
-          <p className="mt-2 text-[13px] leading-relaxed text-ink-soft">
-            Cada vez que te llegue la notificación, te vas a acordar de Hashem — y eso ya es parte de
-            tu avodá en este mundo.
-          </p>
-        </Card>
+        {stage === 'ask' && (
+          <>
+            <Card className="p-4">
+              <p className="text-[13px] leading-relaxed text-ink-soft">
+                Activa las notificaciones y te acompañamos con una <strong>halajá al día</strong> y un{' '}
+                <strong>jizuk</strong> de vez en cuando — un empujón corto para que Hashem no se te
+                pierda en medio del día.
+              </p>
+              <p className="mt-2 text-[13px] leading-relaxed text-ink-soft">
+                Cada vez que te llegue la notificación, te vas a acordar de Hashem — y eso ya es parte
+                de tu avodá en este mundo.
+              </p>
+            </Card>
+            <p className="text-center text-[12px] text-ink-faint">Para entrar a la app, actívalas.</p>
+            {msg && <p className="text-center text-[12px] text-ink-faint">{msg}</p>}
+            <Btn className="w-full" disabled={busy} onClick={() => void activar()}>
+              {busy ? 'Activando…' : '🔔 Activar notificaciones'}
+            </Btn>
+          </>
+        )}
 
-        {msg && <p className="text-center text-[12px] text-ink-faint">{msg}</p>}
-
-        <div className="space-y-2">
-          <Btn className="w-full" disabled={busy} onClick={() => void activar()}>
-            {busy ? 'Activando…' : '🔔 Activar notificaciones'}
-          </Btn>
-          <button
-            onClick={onDone}
-            disabled={busy}
-            className="block w-full text-center text-[13px] text-ink-faint"
-          >
-            Ahora no
-          </button>
-        </div>
+        {stage === 'denied' && (
+          <>
+            <Card className="space-y-2 p-4">
+              <p className="text-[13px] leading-relaxed text-ink-soft">
+                Ya bloqueaste el permiso de notificaciones en este navegador, así que ninguna página —
+                tampoco esta — puede volver a pedírtelo por código. Actívalo a mano:
+              </p>
+              <ol className="list-decimal space-y-1 pl-5 text-[13px] leading-relaxed text-ink-soft">
+                <li>Toca el candado o el ícono junto a la dirección de la página.</li>
+                <li>Busca «Notificaciones» y cámbialo a «Permitir».</li>
+                <li>Vuelve aquí y toca «Ya lo activé».</li>
+              </ol>
+            </Card>
+            {msg && <p className="text-center text-[12px] text-ink-faint">{msg}</p>}
+            <Btn className="w-full" disabled={busy} onClick={() => void activar()}>
+              {busy ? 'Revisando…' : 'Ya lo activé — continuar'}
+            </Btn>
+          </>
+        )}
       </div>
     </div>
   );

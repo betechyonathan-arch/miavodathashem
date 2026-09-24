@@ -7,6 +7,8 @@ import { getSession } from './lib/auth/session';
 import { initSwAutoUpdate } from './lib/swUpdate';
 import { requestPersistentStorage } from './lib/install';
 import { startPresence } from './lib/presence';
+import { isSubscribed, pushSupported } from './lib/push';
+import { backendConfigured } from './lib/supabase';
 import MussarLine from './components/MussarLine';
 import Splash from './components/Splash';
 import Kavana from './components/Kavana';
@@ -59,6 +61,17 @@ export default function App() {
   const [passedKavana, setPassedKavana] = useState(false);
   const [guideClosed, setGuideClosed] = useState(false);
   const [surveyDone, setSurveyDone] = useState(false);
+  // null = revisando; true = puede pasar (activadas, o técnicamente imposible exigirlas aquí);
+  // false = bloquea la entrada hasta que las active. Se revisa en cada entrada, no solo la primera vez.
+  const [pushOk, setPushOk] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!pushSupported() || !backendConfigured) {
+      setPushOk(true); // no se le puede exigir lo que el navegador o el servidor no soportan
+      return;
+    }
+    void isSubscribed().then(setPushOk);
+  }, []);
 
   useEffect(() => {
     initSwAutoUpdate();
@@ -128,10 +141,10 @@ export default function App() {
   // Cuenta nueva: una bienvenida que explica la app, deja clara la privacidad y sugiere una primera kabalá.
   if (settings && !settings.welcomeDoneAt) return <Welcome />;
 
-  // Invitación a activar notificaciones: una sola vez por cuenta, nueva o vieja.
-  if (settings && !settings.pushPromptDoneAt) {
-    return <PushWelcome onDone={() => void saveSettings({ pushPromptDoneAt: new Date().toISOString() })} />;
-  }
+  // Notificaciones obligatorias: sin ellas activadas no se entra, ni cuentas nuevas ni viejas — y
+  // se revisa en cada entrada (si alguien las desactiva después, la próxima vez vuelve a salir esto).
+  if (pushOk === null) return null;
+  if (pushOk === false) return <PushWelcome onDone={() => setPushOk(true)} />;
 
   // Encuestas obligatorias: si hay una activa sin responder, sale antes que todo lo demás y no
   // se puede saltar. Cada vez que se abre la app se vuelve a revisar (sin conexión, se deja pasar).
