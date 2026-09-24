@@ -1,6 +1,7 @@
 import { useEffect, useState, type MouseEvent } from 'react';
 import { KIND_LABEL, SPLASH_MAX, cachedFeatured, fetchFeatured, truncateForSplash, type PublicAporte } from '../lib/aportes';
 import { buildSplashShareImage, pickSplashBackground, shareOrDownloadImage } from '../lib/splashShareImage';
+import { siteOrigin } from '../lib/site';
 
 /**
  * Splash de entrada: fondo oscuro sobrio y toda la pantalla sirve para continuar (tocar en
@@ -55,6 +56,18 @@ export default function Splash({ onContinue }: { onContinue: () => void }) {
     }
   }
 
+  function whatsappText(): string {
+    const cuerpo = featured
+      ? `${featured.body}${featured.source ? `\n— ${featured.source}` : ''}`
+      : 'Servir a Hashem en todos tus caminos.';
+    return `${cuerpo}\n\nAvodah — לעבוד את ה׳ בכל דרכיך\n${siteOrigin()}`;
+  }
+
+  function whatsapp(e: MouseEvent) {
+    e.stopPropagation(); // no debe disparar onContinue
+    window.open(`https://wa.me/?text=${encodeURIComponent(whatsappText())}`, '_blank', 'noopener');
+  }
+
   return (
     <div
       onClick={onContinue}
@@ -70,15 +83,25 @@ export default function Splash({ onContinue }: { onContinue: () => void }) {
         backgroundPosition: 'center 30%',
       }}
     >
-      <button
-        onClick={(e) => void compartir(e)}
-        disabled={sharing}
-        aria-label="Compartir esta pantalla como imagen"
-        className="fixed right-4 top-[calc(1rem+env(safe-area-inset-top,0px))] z-10 flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] disabled:opacity-50"
-        style={{ borderColor: 'rgba(227,189,108,0.5)', color: '#e3bd6c', background: 'rgba(13,11,7,0.55)' }}
-      >
-        {sharing ? '…' : '📤'} Compartir
-      </button>
+      <div className="fixed right-4 top-[calc(1rem+env(safe-area-inset-top,0px))] z-10 flex items-center gap-2">
+        <button
+          onClick={whatsapp}
+          aria-label="Enviar por WhatsApp"
+          className="flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px]"
+          style={{ borderColor: 'rgba(227,189,108,0.5)', color: '#e3bd6c', background: 'rgba(13,11,7,0.55)' }}
+        >
+          💬 WhatsApp
+        </button>
+        <button
+          onClick={(e) => void compartir(e)}
+          disabled={sharing}
+          aria-label="Compartir esta pantalla como imagen"
+          className="flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] disabled:opacity-50"
+          style={{ borderColor: 'rgba(227,189,108,0.5)', color: '#e3bd6c', background: 'rgba(13,11,7,0.55)' }}
+        >
+          {sharing ? '…' : '📤'} Compartir
+        </button>
+      </div>
 
       <span className="hebrew text-3xl leading-snug" style={{ color: '#e3bd6c' }}>
         לעבוד את ה׳ בכל דרכיך
