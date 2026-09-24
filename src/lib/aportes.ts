@@ -18,7 +18,7 @@ export const KIND_LABEL: Record<AporteKind, string> = {
 /**
  * A partir de cuántas letras la pantalla de entrada (Splash) muestra el texto resumido con un
  * botón «Ver completo» en vez de todo de una vez. Ya NO es un tope real: cualquier aporte
- * aprobado se puede poner ahí sin importar su largo (hasta 2000 letras, el máximo de un aporte).
+ * aprobado se puede poner ahí sin importar su largo (hasta 6000 letras, el máximo de un aporte).
  */
 export const SPLASH_MAX = 400;
 

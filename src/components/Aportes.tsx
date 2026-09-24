@@ -84,11 +84,11 @@ export function AporteForm({ onSent, onCancel }: { onSent: () => void; onCancel?
         <Field label="Título (opcional)">
           <input className={inputCls} value={title} maxLength={120} onChange={(e) => setTitle(e.target.value)} placeholder="Por ejemplo: La parashá de esta semana" />
         </Field>
-        <Field label="Tu texto" hint={`${body.trim().length} / 2000 letras`}>
+        <Field label="Tu texto" hint={`${body.trim().length} / 6000 letras`}>
           <textarea
             className={inputCls + ' min-h-[9rem]'}
             value={body}
-            maxLength={2000}
+            maxLength={6000}
             onChange={(e) => setBody(e.target.value)}
             placeholder="Escribe aquí tu dvar Torá, tu pirush o tu musar…"
             required

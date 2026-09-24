@@ -21,7 +21,7 @@ create table if not exists public.aportes (
   anonymous   boolean not null default false,
   kind        text not null check (kind in ('dvar', 'musar', 'pirush')),
   title       text not null default '' check (char_length(title) <= 120),
-  body        text not null check (char_length(body) between 10 and 2000),
+  body        text not null check (char_length(body) between 10 and 6000),
   source      text not null default '' check (char_length(source) <= 160),
   status      text not null default 'pendiente' check (status in ('pendiente', 'aprobado', 'rechazado')),
   featured    boolean not null default false,      -- en la pantalla de entrada (solo uno a la vez)
@@ -29,6 +29,13 @@ create table if not exists public.aportes (
   reviewed_at timestamptz,
   reviewed_by uuid references public.profiles(id) on delete set null
 );
+
+-- Si la tabla ya existía con el tope viejo de 2000, se sube a 6000 (idempotente).
+do $$
+begin
+  alter table public.aportes drop constraint if exists aportes_body_check;
+  alter table public.aportes add constraint aportes_body_check check (char_length(body) between 10 and 6000);
+end $$;
 
 create index if not exists aportes_status_idx on public.aportes (status, created_at desc);
 
@@ -77,8 +84,8 @@ begin
   if char_length(v_body) < 10 then
     raise exception 'Escribe un poco más: mínimo 10 letras';
   end if;
-  if char_length(v_body) > 2000 then
-    raise exception 'Máximo 2000 letras';
+  if char_length(v_body) > 6000 then
+    raise exception 'Máximo 6000 letras';
   end if;
   if not is_adm and (select count(*) from public.aportes where author_id = me.id and status = 'pendiente') >= 5 then
     raise exception 'Ya tienes 5 aportes esperando revisión. Espera a que el admin los revise.';
