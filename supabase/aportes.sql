@@ -157,9 +157,8 @@ begin
     if a.status <> 'aprobado' then
       raise exception 'Primero apruébalo';
     end if;
-    if a.n > 400 then
-      raise exception 'Para la pantalla de entrada el texto debe tener máximo 400 letras (este tiene %).', a.n;
-    end if;
+    -- Sin tope de largo: si es más de 400 letras, la pantalla de entrada lo muestra resumido con
+    -- un botón para ver completo (ver src/components/Splash.tsx, SPLASH_MAX en lib/aportes.ts).
     update public.aportes set featured = false where featured;
   end if;
   update public.aportes set featured = p_featured where id = p_id;

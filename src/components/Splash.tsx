@@ -1,5 +1,5 @@
 import { useEffect, useState, type MouseEvent } from 'react';
-import { KIND_LABEL, cachedFeatured, fetchFeatured, type PublicAporte } from '../lib/aportes';
+import { KIND_LABEL, SPLASH_MAX, cachedFeatured, fetchFeatured, truncateForSplash, type PublicAporte } from '../lib/aportes';
 import { buildSplashShareImage, pickSplashBackground, shareOrDownloadImage } from '../lib/splashShareImage';
 
 /**
@@ -23,6 +23,7 @@ export default function Splash({ onContinue }: { onContinue: () => void }) {
   const [bg] = useState(pickSplashBackground);
   const [sharing, setSharing] = useState(false);
   const [shareMsg, setShareMsg] = useState('');
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -92,9 +93,25 @@ export default function Splash({ onContinue }: { onContinue: () => void }) {
               {KIND_LABEL[featured.kind]}
               {featured.title ? ` · ${featured.title}` : ''}
             </span>
-            <span className="whitespace-pre-line text-[15px] leading-relaxed" style={{ color: 'rgba(247,241,226,0.9)' }}>
-              {featured.body}
+            <span
+              className={`whitespace-pre-line text-[15px] leading-relaxed ${expanded ? 'max-h-[50vh] overflow-y-auto px-1' : ''}`}
+              style={{ color: 'rgba(247,241,226,0.9)' }}
+              onClick={(e) => expanded && e.stopPropagation()}
+            >
+              {expanded || featured.body.length <= SPLASH_MAX ? featured.body : truncateForSplash(featured.body)}
             </span>
+            {!expanded && featured.body.length > SPLASH_MAX && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setExpanded(true);
+                }}
+                className="text-[12px] underline underline-offset-2"
+                style={{ color: '#e3bd6c' }}
+              >
+                Ver completo
+              </button>
+            )}
             <span className="text-[12px]" style={{ color: 'rgba(247,241,226,0.6)' }}>
               — {featured.author_name ?? 'Anónimo'}
               {featured.source ? ` · ${featured.source}` : ''}

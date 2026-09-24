@@ -919,7 +919,7 @@ export default function Admin() {
                       </Btn>
                       <Btn
                         variant="ghost"
-                        disabled={busy || a.body.length > SPLASH_MAX}
+                        disabled={busy}
                         onClick={() =>
                           run(async () => {
                             await reviewAporte(a.id, true);
@@ -935,7 +935,7 @@ export default function Admin() {
                     </div>
                     {a.body.length > SPLASH_MAX && (
                       <p className="text-[12px] text-ink-faint">
-                        Es largo para la pantalla de entrada (máx. {SPLASH_MAX} letras); solo puede publicarse en Torá.
+                        Es largo para la pantalla de entrada (más de {SPLASH_MAX} letras): ahí se verá resumido, con un botón para ver completo.
                       </p>
                     )}
                   </Card>
@@ -973,7 +973,7 @@ export default function Admin() {
                         ) : (
                           <Btn
                             variant="ghost"
-                            disabled={busy || a.body.length > SPLASH_MAX}
+                            disabled={busy}
                             onClick={() => run(() => featureAporte(a.id, true), 'Puesto en la pantalla de entrada.')}
                           >
                             Poner en la pantalla de entrada
@@ -990,7 +990,9 @@ export default function Admin() {
                         </Btn>
                       </div>
                       {a.body.length > SPLASH_MAX && !a.featured && (
-                        <p className="text-[12px] text-ink-faint">Es largo para la pantalla de entrada (máx. {SPLASH_MAX} letras).</p>
+                        <p className="text-[12px] text-ink-faint">
+                          Es largo para la pantalla de entrada (más de {SPLASH_MAX} letras): ahí se verá resumido, con un botón para ver completo.
+                        </p>
                       )}
                     </Card>
                   ))}

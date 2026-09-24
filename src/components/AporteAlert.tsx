@@ -110,7 +110,7 @@ export default function AporteAlert() {
         </Btn>
         <Btn
           variant="ghost"
-          disabled={busy || a.body.length > SPLASH_MAX}
+          disabled={busy}
           onClick={() =>
             act(async () => {
               await reviewAporte(a.id, true);
@@ -125,7 +125,9 @@ export default function AporteAlert() {
         </Btn>
       </div>
       {a.body.length > SPLASH_MAX && (
-        <p className="text-[12px] text-ink-faint">Es largo para la pantalla de entrada (máx. {SPLASH_MAX} letras): solo puede ir en Torá.</p>
+        <p className="text-[12px] text-ink-faint">
+          Es largo para la pantalla de entrada (más de {SPLASH_MAX} letras): ahí se verá resumido, con un botón para ver completo.
+        </p>
       )}
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-2 text-[13px]">
         <Link to="/admin?t=aportes" className="text-gold underline underline-offset-2">

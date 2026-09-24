@@ -15,8 +15,20 @@ export const KIND_LABEL: Record<AporteKind, string> = {
   pirush: 'Pirush',
 };
 
-/** Máximo de letras para poder ponerlo en la pantalla de entrada (lo valida también la base). */
+/**
+ * A partir de cuántas letras la pantalla de entrada (Splash) muestra el texto resumido con un
+ * botón «Ver completo» en vez de todo de una vez. Ya NO es un tope real: cualquier aporte
+ * aprobado se puede poner ahí sin importar su largo (hasta 2000 letras, el máximo de un aporte).
+ */
 export const SPLASH_MAX = 400;
+
+/** Corta en la última palabra completa antes de SPLASH_MAX letras, para el resumen del Splash. */
+export function truncateForSplash(body: string): string {
+  if (body.length <= SPLASH_MAX) return body;
+  const cut = body.slice(0, SPLASH_MAX);
+  const lastSpace = cut.lastIndexOf(' ');
+  return `${(lastSpace > 0 ? cut.slice(0, lastSpace) : cut).trimEnd()}…`;
+}
 
 export interface PublicAporte {
   id: string;
