@@ -7,8 +7,7 @@ import { getSession } from './lib/auth/session';
 import { initSwAutoUpdate } from './lib/swUpdate';
 import { requestPersistentStorage } from './lib/install';
 import { startPresence } from './lib/presence';
-import { isSubscribed, pushSupported } from './lib/push';
-import { backendConfigured } from './lib/supabase';
+import { isSubscribed } from './lib/push';
 import MussarLine from './components/MussarLine';
 import Splash from './components/Splash';
 import Kavana from './components/Kavana';
@@ -61,15 +60,13 @@ export default function App() {
   const [passedKavana, setPassedKavana] = useState(false);
   const [guideClosed, setGuideClosed] = useState(false);
   const [surveyDone, setSurveyDone] = useState(false);
-  // null = revisando; true = puede pasar (activadas, o técnicamente imposible exigirlas aquí);
-  // false = bloquea la entrada hasta que las active. Se revisa en cada entrada, no solo la primera vez.
+  // null = revisando; true = activadas (puede pasar); false = bloquea la entrada hasta que las
+  // active — sin excepción, ni siquiera si el navegador no soporta push: PushWelcome se encarga de
+  // explicar cada caso (incluido el que no tiene salida). Se revisa en cada entrada, no solo la
+  // primera vez.
   const [pushOk, setPushOk] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (!pushSupported() || !backendConfigured) {
-      setPushOk(true); // no se le puede exigir lo que el navegador o el servidor no soportan
-      return;
-    }
     void isSubscribed().then(setPushOk);
   }, []);
 

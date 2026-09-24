@@ -2,19 +2,32 @@ import { useEffect, useMemo, useState } from 'react';
 import { useZury } from '../state/zury';
 import { baseMusarContext } from '../lib/musar/context';
 import { pickMusar } from '../lib/musar';
-import { isSubscribed, subscribePush } from '../lib/push';
+import { isSubscribed, pushSupported, subscribePush } from '../lib/push';
+import { backendConfigured } from '../lib/supabase';
 import { Btn, Card } from './ui';
 
-type Stage = 'checking' | 'ask' | 'denied';
+type Stage = 'checking' | 'ask' | 'denied' | 'sin-soporte-ios' | 'sin-soporte';
+
+function isIOS(): boolean {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent);
+}
+
+function isStandalone(): boolean {
+  return (
+    (navigator as Navigator & { standalone?: boolean }).standalone === true ||
+    window.matchMedia?.('(display-mode: standalone)').matches === true
+  );
+}
 
 /**
  * Puerta obligatoria: no se entra a la app sin notificaciones activadas. Se revisa en CADA
  * entrada (no es un «ya la vi» de una sola vez): si alguien las desactiva después, a su próxima
- * entrada vuelve a salir esto. El único escape es técnico, nunca de conveniencia — quien ya le dio
- * «Bloquear» al navegador no puede recibir el diálogo de permiso otra vez por código de ninguna
- * página web; aquí se le explica cómo arreglarlo a mano, en vez de dejarlo varado sin saber por qué.
- * (Este componente asume que el navegador SÍ soporta push y que el servidor SÍ está configurado —
- * esa comprobación, que si falla no puede exigirse nada, vive en App.tsx antes de montar esto.)
+ * entrada vuelve a salir esto.
+ *
+ * Sin excepción, ni para quien esté en un navegador que técnicamente no soporta push: en iPhone
+ * (Safari sin agregar a la pantalla de inicio) se explica cómo arreglarlo, porque sí hay una
+ * salida real. Para el resto de los casos sin salida (navegador viejo, webview sin push, servidor
+ * no configurado) se le dice la verdad — que no puede entrar ahí — en vez de dejarlo pasar.
  */
 export default function PushWelcome({ onDone }: { onDone: () => void }) {
   const settings = useZury((s) => s.settings);
@@ -26,6 +39,10 @@ export default function PushWelcome({ onDone }: { onDone: () => void }) {
   const line = useMemo(() => pickMusar(baseMusarContext(settings, day), 'push-welcome'), [settings, day]);
 
   function check() {
+    if (!pushSupported() || !backendConfigured) {
+      setStage(!pushSupported() && isIOS() && !isStandalone() ? 'sin-soporte-ios' : 'sin-soporte');
+      return;
+    }
     void isSubscribed().then((yes) => {
       if (yes) onDone();
       else setStage(Notification.permission === 'denied' ? 'denied' : 'ask');
@@ -58,21 +75,27 @@ export default function PushWelcome({ onDone }: { onDone: () => void }) {
             🔔
           </span>
           <h1 className="mt-2 text-2xl text-ink">
-            {stage === 'denied' ? 'Activa las notificaciones para entrar' : 'No te pierdas el día'}
+            {stage === 'ask'
+              ? 'No te pierdas el día'
+              : stage === 'sin-soporte-ios'
+                ? 'Un paso más para entrar'
+                : 'Activa las notificaciones para entrar'}
           </h1>
         </div>
 
-        <Card className="space-y-2 border-gold/50 p-4 text-center">
-          {line.he && (
-            <p className="hebrew text-lg leading-relaxed text-gold" dir="rtl">
-              {line.he}
-            </p>
-          )}
-          <p className="text-[14px] leading-relaxed text-ink">{line.es}</p>
-          {line.sourceEs && (
-            <p className="text-[11px] uppercase tracking-[0.14em] text-ink-faint">{line.sourceEs}</p>
-          )}
-        </Card>
+        {stage !== 'sin-soporte' && (
+          <Card className="space-y-2 border-gold/50 p-4 text-center">
+            {line.he && (
+              <p className="hebrew text-lg leading-relaxed text-gold" dir="rtl">
+                {line.he}
+              </p>
+            )}
+            <p className="text-[14px] leading-relaxed text-ink">{line.es}</p>
+            {line.sourceEs && (
+              <p className="text-[11px] uppercase tracking-[0.14em] text-ink-faint">{line.sourceEs}</p>
+            )}
+          </Card>
+        )}
 
         {stage === 'ask' && (
           <>
@@ -113,6 +136,40 @@ export default function PushWelcome({ onDone }: { onDone: () => void }) {
               {busy ? 'Revisando…' : 'Ya lo activé — continuar'}
             </Btn>
           </>
+        )}
+
+        {stage === 'sin-soporte-ios' && (
+          <>
+            <Card className="space-y-2 p-4">
+              <p className="text-[13px] leading-relaxed text-ink-soft">
+                En iPhone, Safari solo puede mandar notificaciones si la app está agregada a tu
+                pantalla de inicio. Para entrar:
+              </p>
+              <ol className="list-decimal space-y-1 pl-5 text-[13px] leading-relaxed text-ink-soft">
+                <li>
+                  Toca el botón <strong>Compartir</strong> (el cuadro con la flecha hacia arriba, abajo
+                  en Safari).
+                </li>
+                <li>
+                  Elige <strong>«Agregar a inicio»</strong>.
+                </li>
+                <li>Cierra esta pestaña y abre Avodah desde el ícono en tu pantalla de inicio.</li>
+              </ol>
+              <p className="text-[12px] leading-relaxed text-ink-faint">
+                Desde ahí sí se pueden activar las notificaciones, y podrás entrar.
+              </p>
+            </Card>
+          </>
+        )}
+
+        {stage === 'sin-soporte' && (
+          <Card className="space-y-2 p-4 text-center">
+            <p className="text-[13px] leading-relaxed text-ink-soft">
+              Este navegador no puede activar notificaciones, así que no se puede entrar a la app
+              desde aquí. Prueba desde Chrome, Firefox o Safari, en un teléfono o computadora
+              actualizados.
+            </p>
+          </Card>
         )}
       </div>
     </div>
