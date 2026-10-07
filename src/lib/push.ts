@@ -86,3 +86,26 @@ export async function unsubscribePush(): Promise<void> {
     await sub.unsubscribe().catch(() => undefined);
   }
 }
+
+/*
+  La invitación a activar notificaciones ya no bloquea la entrada: quien toca «Ahora no» entra a la
+  app y la invitación no vuelve a salir sola hasta el día siguiente (en este dispositivo).
+*/
+const POSPUESTO_KEY = 'avodah.push.pospuesto';
+const hoy = () => new Date().toISOString().slice(0, 10);
+
+export function pushPospuestoHoy(): boolean {
+  try {
+    return localStorage.getItem(POSPUESTO_KEY) === hoy();
+  } catch {
+    return false;
+  }
+}
+
+export function posponerPush(): void {
+  try {
+    localStorage.setItem(POSPUESTO_KEY, hoy());
+  } catch {
+    /* sin almacenamiento: la invitación puede volver a salir en la próxima entrada */
+  }
+}

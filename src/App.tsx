@@ -7,7 +7,7 @@ import { getSession } from './lib/auth/session';
 import { initSwAutoUpdate } from './lib/swUpdate';
 import { requestPersistentStorage } from './lib/install';
 import { startPresence } from './lib/presence';
-import { isSubscribed } from './lib/push';
+import { isSubscribed, pushPospuestoHoy } from './lib/push';
 import MussarLine from './components/MussarLine';
 import Splash from './components/Splash';
 import Kavana from './components/Kavana';
@@ -60,14 +60,12 @@ export default function App() {
   const [passedKavana, setPassedKavana] = useState(false);
   const [guideClosed, setGuideClosed] = useState(false);
   const [surveyDone, setSurveyDone] = useState(false);
-  // null = revisando; true = activadas (puede pasar); false = bloquea la entrada hasta que las
-  // active — sin excepción, ni siquiera si el navegador no soporta push: PushWelcome se encarga de
-  // explicar cada caso (incluido el que no tiene salida). Se revisa en cada entrada, no solo la
-  // primera vez.
-  const [pushOk, setPushOk] = useState<boolean | null>(null);
+  // null = revisando; true = pasa directo (activadas, o pospuestas hoy con «Ahora no»); false =
+  // muestra la invitación, que siempre se puede saltar.
+  const [pushOk, setPushOk] = useState<boolean | null>(() => (pushPospuestoHoy() ? true : null));
 
   useEffect(() => {
-    void isSubscribed().then(setPushOk);
+    if (!pushPospuestoHoy()) void isSubscribed().then(setPushOk);
   }, []);
 
   useEffect(() => {
@@ -138,8 +136,8 @@ export default function App() {
   // Cuenta nueva: una bienvenida que explica la app, deja clara la privacidad y sugiere una primera kabalá.
   if (settings && !settings.welcomeDoneAt) return <Welcome />;
 
-  // Notificaciones obligatorias: sin ellas activadas no se entra, ni cuentas nuevas ni viejas — y
-  // se revisa en cada entrada (si alguien las desactiva después, la próxima vez vuelve a salir esto).
+  // Invitación a activar notificaciones: sale al entrar si no están activadas, pero nunca bloquea —
+  // «Ahora no» deja pasar y la pospone hasta el día siguiente.
   if (pushOk === null) return null;
   if (pushOk === false) return <PushWelcome onDone={() => setPushOk(true)} />;
 
