@@ -27,21 +27,34 @@ export async function listPushSubscribers(): Promise<PushSubscriber[]> {
   return (data ?? []) as PushSubscriber[];
 }
 
-export async function sendPushToAll(title: string, body: string): Promise<SendPushResult> {
+/** Llama a una función de servidor de notificaciones y devuelve su resultado, o su mensaje de error real. */
+async function invocar(fn: string, body: Record<string, unknown>): Promise<SendPushResult> {
   if (!supabase) throw new PushAdminError('El servidor no está configurado.');
-  const { data, error } = await supabase.functions.invoke('send-push', { body: { title, body } });
+  const { data, error } = await supabase.functions.invoke(fn, { body });
   if (error) {
     // FunctionsHttpError trae el cuerpo de la respuesta (con el mensaje real) en `context`.
+    let real = '';
     const ctx = (error as { context?: Response }).context;
     if (ctx) {
       try {
-        const j = (await ctx.clone().json()) as { error?: string };
-        if (j.error) throw new PushAdminError(j.error);
+        real = ((await ctx.clone().json()) as { error?: string }).error ?? '';
       } catch {
         /* sin cuerpo legible: se usa el mensaje genérico de abajo */
       }
     }
-    throw new PushAdminError(error.message || 'No se pudo enviar la notificación.');
+    throw new PushAdminError(real || error.message || 'No se pudo enviar la notificación.');
   }
   return data as SendPushResult;
+}
+
+export async function sendPushToAll(title: string, body: string): Promise<SendPushResult> {
+  return invocar('send-push', { title, body });
+}
+
+/**
+ * Avisa de una encuesta nueva SOLO a quien le toca (todos, hombres, mujeres o la persona elegida).
+ * Para quién es y el texto los decide el servidor (`supabase/functions/push-encuesta`), no esta pantalla.
+ */
+export async function sendPushEncuesta(encuestaId: string): Promise<SendPushResult> {
+  return invocar('push-encuesta', { encuesta_id: encuestaId });
 }
