@@ -37,6 +37,7 @@ const GROUPS: Group[] = [
     rows: [
       { he: 'איך אני', es: '¿Cómo estoy?', desc: 'Ahora, semana, mes y año. Cada número explica su “¿por qué?”.', to: '/como-estoy' },
       { he: 'תעודות', es: 'Boletas', desc: 'Semanal, mensual y anual (en Rosh Hashaná): dónde estuviste bien y mal a detalle, un refuerzo y un musar. Exportables a PDF.', to: '/boleta' },
+      { he: 'תעודות הוקרה', es: 'Mis diplomas', desc: 'Los diplomas que te ha otorgado el equipo de Avodah: para verlos, guardarlos o compartirlos.', to: '/diplomas' },
       { he: 'המסע', es: 'Historia y búsqueda', desc: 'Recorre y busca en todo tu historial, día por día.', to: '/historia' },
       { he: 'השוואה', es: 'Comparar con antes', desc: 'Hoy vs. 7 / 30 / 90 días y años atrás; línea de vida.', to: '/historia?t=comparar' },
       { he: 'לוח', es: 'Calendario hebreo', desc: 'Zmanim, parashá, cuentas regresivas, omer y yahrzeits.', to: '/calendario' },

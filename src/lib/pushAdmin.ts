@@ -58,3 +58,8 @@ export async function sendPushToAll(title: string, body: string): Promise<SendPu
 export async function sendPushEncuesta(encuestaId: string): Promise<SendPushResult> {
   return invocar('push-encuesta', { encuesta_id: encuestaId });
 }
+
+/** Avisa a UNA persona que recibió un diploma. A quién y el texto los decide el servidor (`push-diploma`). */
+export async function sendPushDiploma(diplomaId: string): Promise<SendPushResult> {
+  return invocar('push-diploma', { diploma_id: diplomaId });
+}

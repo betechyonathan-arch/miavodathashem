@@ -17,6 +17,7 @@ import Guia from './components/Guia';
 import { guiaVista, marcarGuiaVista } from './lib/guia';
 import RetosGuia from './components/RetosGuia';
 import EncuestaGate from './components/EncuestaGate';
+import DiplomaGate from './components/DiplomaGate';
 import AppShell from './components/AppShell';
 import Dashboard from './pages/Dashboard';
 import CheckIn from './pages/CheckIn';
@@ -38,6 +39,7 @@ import KabalaPage from './pages/Kabala';
 import Boleta from './pages/Boleta';
 import Menu from './pages/Menu';
 import Settings from './pages/Settings';
+import Diplomas from './pages/Diplomas';
 
 /** «Menú → Cómo usar la app»: la guía otra vez, cuando la persona quiera. */
 function GuiaDeNuevo() {
@@ -60,6 +62,7 @@ export default function App() {
   const [passedKavana, setPassedKavana] = useState(false);
   const [guideClosed, setGuideClosed] = useState(false);
   const [surveyDone, setSurveyDone] = useState(false);
+  const [diplomasDone, setDiplomasDone] = useState(false);
   // null = revisando; true = pasa directo (activadas, o pospuestas hoy con «Ahora no»); false =
   // muestra la invitación, que siempre se puede saltar.
   const [pushOk, setPushOk] = useState<boolean | null>(() => (pushPospuestoHoy() ? true : null));
@@ -145,6 +148,9 @@ export default function App() {
   // se puede saltar. Cada vez que se abre la app se vuelve a revisar (sin conexión, se deja pasar).
   if (!surveyDone) return <EncuestaGate onDone={() => setSurveyDone(true)} />;
 
+  // Diploma nuevo: se muestra en grande una sola vez (después queda en «Mis diplomas»).
+  if (!diplomasDone) return <DiplomaGate onDone={() => setDiplomasDone(true)} />;
+
   return (
     <Routes>
       <Route element={<AppShell />}>
@@ -170,6 +176,7 @@ export default function App() {
         <Route path="boleta" element={<Boleta />} />
         <Route path="menu" element={<Menu />} />
         <Route path="ajustes" element={<Settings />} />
+        <Route path="diplomas" element={<Diplomas />} />
         {(getSession()?.isAdmin || (import.meta.env.DEV && new URLSearchParams(window.location.search).get('demo') === '1')) && (
           <Route path="admin" element={<Admin />} />
         )}

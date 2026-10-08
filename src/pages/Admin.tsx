@@ -39,6 +39,7 @@ import {
 import { listPushSubscribers, sendPushToAll, type PushSubscriber } from '../lib/pushAdmin';
 import { fetchEncuestas, type PublicEncuesta } from '../lib/encuestas';
 import EncuestasAdmin from '../components/EncuestasAdmin';
+import DiplomasAdmin from '../components/DiplomasAdmin';
 import {
   COMUNIDAD_AREAS,
   deleteComunidad,
@@ -227,7 +228,7 @@ const chip = (on: boolean) =>
 
 /* ───────────────────────────── Página ───────────────────────────── */
 
-type Tab = 'resumen' | 'personas' | 'aportes' | 'avisos' | 'kabalot' | 'encuestas' | 'retos' | 'actividad';
+type Tab = 'resumen' | 'personas' | 'aportes' | 'avisos' | 'kabalot' | 'encuestas' | 'diplomas' | 'retos' | 'actividad';
 type Filter = 'todas' | 'en_linea' | 'nuevas' | 'admins' | 'desactivadas' | 'con_notis';
 type Sort = 'recientes' | 'ultima' | 'nombre' | 'entradas';
 type EventFilter = 'todo' | 'actividad' | 'registros' | 'entradas' | 'aportes' | 'retos' | 'admin';
@@ -500,6 +501,7 @@ export default function Admin() {
     ['avisos', 'Avisos'],
     ['kabalot', 'Kabalot'],
     ['encuestas', 'Encuestas'],
+    ['diplomas', 'Diplomas'],
     ['retos', `Retos${pendientesRetos.length + reportesPendientes.length ? ` (${pendientesRetos.length + reportesPendientes.length})` : ''}`],
     ['actividad', 'Actividad'],
   ];
@@ -1248,6 +1250,8 @@ export default function Admin() {
           )}
         </div>
       )}
+
+      {users && tab === 'diplomas' && <DiplomasAdmin users={users} aportes={aportes} events={events} busy={busy} run={run} />}
 
       {users && tab === 'retos' && (
         <div className="space-y-6">
