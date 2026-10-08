@@ -3,7 +3,7 @@
   personalizar su diploma viéndolo en vivo, otorgarlo con notificación, y ver o editar los que ya
   se dieron. La persona lo ve en grande al entrar y lo guarda en «Mis diplomas».
 */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { AdminEvent, AdminUser } from '../lib/admin';
 import type { AporteRow } from '../lib/aportes';
 import { fechasDiploma } from '../lib/diplomaCanvas';
@@ -119,6 +119,7 @@ export default function DiplomasAdmin({
   const [notificar, setNotificar] = useState(true);
   const [ver, setVer] = useState<string | null>(null);
   const [verTodos, setVerTodos] = useState(false);
+  const formulario = useRef<HTMLDivElement>(null);
 
   const recargar = useCallback(async () => setList(await listDiplomasAdmin()), []);
   useEffect(() => {
@@ -211,8 +212,15 @@ export default function DiplomasAdmin({
                     {s.entradas} entradas · {s.invitados} invitados · {s.aportes} aportes · {s.actividad} actividades
                   </p>
                 </div>
-                <Btn variant="ghost" onClick={() => elegir(s.u.id)}>
-                  Elegir
+                <Btn
+                  variant={persona === s.u.id ? 'solid' : 'ghost'}
+                  onClick={() => {
+                    elegir(s.u.id);
+                    // el formulario está más abajo: se lleva a la persona hasta ahí para que vea que quedó elegida
+                    setTimeout(() => formulario.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+                  }}
+                >
+                  {persona === s.u.id ? 'Elegida ✓' : 'Elegir'}
                 </Btn>
               </div>
             ))}
@@ -223,6 +231,7 @@ export default function DiplomasAdmin({
         </Card>
       )}
 
+      <div ref={formulario} className="scroll-mt-4">
       <Card className="space-y-5 p-5">
         <div>
           <h2 className="text-xl text-ink">{editId ? 'Editar diploma' : 'Nuevo diploma'}</h2>
@@ -231,9 +240,10 @@ export default function DiplomasAdmin({
           </p>
         </div>
 
-        <Field label="¿Para quién?">
+        <div>
+          <span className="mb-1 block text-[13px] font-medium text-ink-soft">¿Para quién?</span>
           <ElegirPersona users={users} value={persona} onChange={elegir} />
-        </Field>
+        </div>
 
         <div className="space-y-2">
           <span className="block text-[13px] font-medium text-ink-soft">Empezar con</span>
@@ -313,6 +323,7 @@ export default function DiplomasAdmin({
           )}
         </div>
       </Card>
+      </div>
 
       <section className="space-y-3">
         <h2 className="text-xl text-ink">Diplomas otorgados ({list?.length ?? 0})</h2>
